@@ -1,4 +1,4 @@
-const { orderQueries, digitalItemQueries } = require('./database');
+const { orderQueries, digitalItemQueries, productQueries } = require('./database');
 const { formatRupiah, formatDate } = require('./utils/formatter');
 
 /**
@@ -126,6 +126,16 @@ async function processOrderDelivery(bot, orderId, paidAmount = null, options = {
       digitalItemsText = `\n⚠️ *Pemberitahuan:* Stok digital sedang kosong. Admin kami akan segera memproses detail produk Anda secara manual dan mengirimkannya ke chat ini. Terima kasih atas kesabaran Anda! 🙏\n`;
     }
 
+    // 4.5. Ambil petunjuk cara penggunaan untuk produk
+    let instructionsText = '';
+    for (const item of items) {
+      const product = productQueries.getById.get(item.product_id);
+      if (product && product.usage_instructions) {
+        instructionsText += `\n📖 *Cara Penggunaan (${item.product_name}):*\n` +
+          `_${product.usage_instructions}_\n`;
+      }
+    }
+
     // 5. Fungsi kirim pesan sukses akhir ke pembeli
     const sendBuyerSuccessMessage = async () => {
       const buyerText =
@@ -138,6 +148,7 @@ async function processOrderDelivery(bot, orderId, paidAmount = null, options = {
         `*Item Yang Dibeli:*\n` +
         `${itemList}\n` +
         digitalItemsText +
+        (instructionsText ? `\n` + instructionsText : '') +
         `\nTerima kasih telah berbelanja di toko kami! Jika ada kendala, hubungi admin.`;
 
       await bot.sendMessage(parseInt(order.chat_id), buyerText, {

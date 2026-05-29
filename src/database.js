@@ -108,6 +108,12 @@ function initDatabase() {
   } catch (e) {
     // Kolom sudah ada, skip
   }
+  try {
+    db.exec(`ALTER TABLE products ADD COLUMN usage_instructions TEXT DEFAULT ''`);
+    console.log('  ✅ Migrasi: kolom usage_instructions ditambahkan');
+  } catch (e) {
+    // Kolom sudah ada, skip
+  }
 
   // Index untuk unique_amount (setelah migrasi)
   try {
@@ -137,8 +143,8 @@ function initDatabase() {
     SELECT * FROM products ORDER BY category, name
   `);
   productQueries.insert = db.prepare(`
-    INSERT INTO products (name, description, price, stock, image_url, category)
-    VALUES (@name, @description, @price, @stock, @image_url, @category)
+    INSERT INTO products (name, description, price, stock, image_url, category, usage_instructions)
+    VALUES (@name, @description, @price, @stock, @image_url, @category, @usage_instructions)
   `);
   productQueries.update = db.prepare(`
     UPDATE products SET
@@ -149,6 +155,7 @@ function initDatabase() {
       image_url = @image_url,
       category = @category,
       is_active = @is_active,
+      usage_instructions = @usage_instructions,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = @id
   `);

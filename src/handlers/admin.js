@@ -326,20 +326,12 @@ function registerAdminHandlers(bot) {
       return;
     }
 
-    if (data.startsWith('edit_cat_')) {
+    if (data.startsWith('edit_instructions_')) {
       bot.answerCallbackQuery(query.id);
       adminState.delete(String(chatId)); // Clear existing state
-      const productId = parseInt(data.replace('edit_cat_', ''));
-      adminState.set(String(chatId), { step: 'edit_category', productId });
-      bot.sendMessage(chatId, 'Masukkan kategori baru:').catch(() => {});
-      return;
-    }
-
-    if (data.startsWith('edit_img_')) {
-      bot.answerCallbackQuery(query.id);
-      const productId = parseInt(data.replace('edit_img_', ''));
-      adminState.set(String(chatId), { step: 'edit_image', productId });
-      bot.sendMessage(chatId, '🖼️ Kirim foto baru untuk produk ini:').catch(() => {});
+      const productId = parseInt(data.replace('edit_instructions_', ''));
+      adminState.set(String(chatId), { step: 'edit_instructions', productId });
+      bot.sendMessage(chatId, 'Masukkan petunjuk / cara penggunaan baru:\n_(Ketik `-` untuk mengosongkan)_').catch(() => {});
       return;
     }
 
@@ -478,11 +470,12 @@ function startAddProduct(bot, chatId) {
       stock: 0,
       image_url: '',
       category: 'Digital',
+      usage_instructions: '',
     },
   });
 
   bot.sendMessage(chatId,
-    `*Tambah Produk Baru (1/5)*\n\n` +
+    `*Tambah Produk Baru (1/4)*\n\n` +
     `Masukkan nama produk:\n` +
     `_(Contoh: ChatGPT Premium 1 Bulan)_\n\n` +
     `Ketik \`/batal\` untuk membatalkan.`,
@@ -500,8 +493,7 @@ function saveProductWizard(bot, chatId, productData) {
       `• Nama: *${productData.name}*\n` +
       `• Deskripsi: _${productData.description || '-'}_\n` +
       `• Harga: *${formatRupiah(productData.price)}*\n` +
-      `• Kategori: *${productData.category}*\n` +
-      `• Gambar: ${productData.image_url ? 'Ya' : 'Tidak'}\n\n` +
+      `• Cara Penggunaan: _${productData.usage_instructions || '-'}_\n\n` +
       `💡 _Tips: Silakan kelola stok produk untuk mengisi credentials akun digital atau link download._`,
       {
         parse_mode: 'Markdown',
@@ -526,13 +518,13 @@ function handleAdminInput(bot, msg, state) {
   }
 
   switch (state.step) {
-    // ==================== ADD PRODUCT WIZARD (5 STEPS) ====================
+    // ==================== ADD PRODUCT WIZARD (4 STEPS) ====================
     case 'add_name':
       state.product.name = text;
       state.step = 'add_description';
       adminState.set(String(chatId), state);
       bot.sendMessage(chatId,
-        `*Tambah Produk Baru (2/5)*\n\n` +
+        `*Tambah Produk Baru (2/4)*\n\n` +
         `Nama Produk: *${text}*\n\n` +
         `Masukkan deskripsi produk:\n` +
         `_(Ketik \`-\` jika ingin mengosongkan deskripsi)_`,
@@ -545,7 +537,7 @@ function handleAdminInput(bot, msg, state) {
       state.step = 'add_price';
       adminState.set(String(chatId), state);
       bot.sendMessage(chatId,
-        `*Tambah Produk Baru (3/5)*\n\n` +
+        `*Tambah Produk Baru (3/4)*\n\n` +
         `Deskripsi: _${state.product.description || '-'}_\n\n` +
         `Masukkan harga produk (angka saja, tanpa titik/koma):\n` +
         `_(Contoh: \`50000\` untuk Rp 50.000)_`,
@@ -560,36 +552,20 @@ function handleAdminInput(bot, msg, state) {
         return;
       }
       state.product.price = price;
-      state.step = 'add_category';
+      state.step = 'add_instructions';
       adminState.set(String(chatId), state);
       bot.sendMessage(chatId,
-        `*Tambah Produk Baru (4/5)*\n\n` +
+        `*Tambah Produk Baru (4/4)*\n\n` +
         `Harga: *${formatRupiah(price)}*\n\n` +
-        `Masukkan kategori produk:\n` +
-        `_(Ketik \`-\` untuk menggunakan kategori default: Digital)_`,
+        `Masukkan petunjuk / cara penggunaan produk:\n` +
+        `_(Ketik \`-\` jika ingin mengosongkan cara penggunaan)_`,
         { parse_mode: 'Markdown' }
       ).catch(() => {});
       break;
     }
 
-    case 'add_category':
-      state.product.category = text === '-' ? 'Digital' : text;
-      state.step = 'add_image';
-      adminState.set(String(chatId), state);
-      bot.sendMessage(chatId,
-        `*Tambah Produk Baru (5/5)*\n\n` +
-        `Kategori: *${state.product.category}*\n\n` +
-        `Kirimkan foto/gambar untuk produk ini:\n` +
-        `_(Ketik \`-\` jika produk tidak menggunakan gambar)_`,
-        { parse_mode: 'Markdown' }
-      ).catch(() => {});
-      break;
-
-    case 'add_image':
-      if (text !== '-') {
-        bot.sendMessage(chatId, '⚠️ Kirimkan foto atau ketik `-` untuk melewatkan:').catch(() => {});
-        return;
-      }
+    case 'add_instructions':
+      state.product.usage_instructions = text === '-' ? '' : text;
       saveProductWizard(bot, chatId, state.product);
       break;
 
@@ -644,11 +620,11 @@ function handleAdminInput(bot, msg, state) {
       break;
     }
 
-    case 'edit_category': {
+    case 'edit_instructions': {
       const product = productQueries.getById.get(state.productId);
       if (product) {
-        productQueries.update.run({ ...product, category: text });
-        bot.sendMessage(chatId, `✅ Kategori diubah menjadi: ${text}`).catch(() => {});
+        productQueries.update.run({ ...product, usage_instructions: text === '-' ? '' : text });
+        bot.sendMessage(chatId, `✅ Petunjuk cara penggunaan berhasil diperbarui.`).catch(() => {});
       }
       adminState.delete(String(chatId));
       break;
@@ -1110,7 +1086,7 @@ function showEditProduct(bot, chatId, messageId, productId) {
     `• Deskripsi: _${product.description || '-'}_\n` +
     `• Harga: *${formatRupiah(product.price)}*\n` +
     `• Sisa Stok: *${product.stock} unit*\n` +
-    `• Kategori: *${product.category}*\n` +
+    `• Cara Penggunaan: _${product.usage_instructions || '-'}_\n` +
     `• Status: *${statusText}*\n\n` +
     `Silakan pilih bagian data produk yang ingin diubah:`;
 
@@ -1131,8 +1107,7 @@ function showEditProduct(bot, chatId, messageId, productId) {
           { text: '📦 Stok', callback_data: `edit_stock_${productId}` },
         ],
         [
-          { text: '🏷️ Kategori', callback_data: `edit_cat_${productId}` },
-          { text: '🖼️ Gambar', callback_data: `edit_img_${productId}` },
+          { text: '📖 Cara Penggunaan', callback_data: `edit_instructions_${productId}` },
         ],
         [
           { text: toggleText, callback_data: `edit_toggle_${productId}` },

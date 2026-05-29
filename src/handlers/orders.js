@@ -1,4 +1,4 @@
-const { orderQueries, digitalItemQueries } = require('../database');
+const { orderQueries, digitalItemQueries, productQueries } = require('../database');
 const { formatRupiah, formatDate, statusEmoji, statusLabel } = require('../utils/formatter');
 const { mainMenuKeyboard } = require('../utils/keyboard');
 
@@ -138,6 +138,7 @@ function showOrderDetail(bot, chatId, messageId, orderId) {
 
   // Ambil data credential digital yang terikat jika order sudah sukses dibayar
   let digitalItemsText = '';
+  let instructionsText = '';
   if (order.status === 'paid' || order.status === 'confirmed') {
     const claimedDigitalItems = digitalItemQueries.getByOrder.all(orderId);
     if (claimedDigitalItems.length > 0) {
@@ -161,6 +162,15 @@ function showOrderDetail(bot, chatId, messageId, orderId) {
       });
       digitalItemsText += `💡 _Ketuk tulisan abu-abu di atas untuk menyalin._\n`;
     }
+
+    // Ambil petunjuk cara penggunaan untuk produk
+    for (const item of items) {
+      const product = productQueries.getById.get(item.product_id);
+      if (product && product.usage_instructions) {
+        instructionsText += `\n📖 *Cara Penggunaan (${item.product_name}):*\n` +
+          `_${product.usage_instructions}_\n`;
+      }
+    }
   }
 
   let text =
@@ -180,7 +190,8 @@ function showOrderDetail(bot, chatId, messageId, orderId) {
     text += `Ref DANA: \`${order.dana_reference}\`\n`;
   }
 
-  text += digitalItemsText;
+  if (digitalItemsText) text += digitalItemsText;
+  if (instructionsText) text += instructionsText;
 
   const buttons = [];
 
