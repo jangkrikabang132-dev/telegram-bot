@@ -55,7 +55,7 @@ function registerStartHandlers(bot) {
       `6. Transfer dengan nominal yang tepat\n` +
       `7. Pembayaran Anda akan diverifikasi otomatis!\n\n` +
       `💬 *Layanan Pengaduan & Komplain Kendala:*\n` +
-      `Hubungi Telegram: @Naufal_090`,
+      `Hubungi Telegram: @Naufal\\_090`,
       {
         parse_mode: 'Markdown',
         reply_markup: replyMenuKeyboard(),
@@ -197,7 +197,7 @@ function registerStartHandlers(bot) {
       `• Total Stok Digital: *${totalStock}* unit\n` +
       `• Metode Pembayaran: QRIS Dinamis (Auto-Detect)\n\n` +
       `💬 *Layanan Bantuan Admin:*\n` +
-      `• Hubungi: @Naufal_090\n` +
+      `• Hubungi: @Naufal\\_090\n` +
       `• Operasional: 24 Jam (Komplain & Kendala)\n\n` +
       `Terima kasih telah berbelanja di toko kami!`,
       {
@@ -240,7 +240,7 @@ function registerStartHandlers(bot) {
         `2. Atur jumlah belanja lalu tekan *Bayar*.\n` +
         `3. Scan QRIS dan bayar sesuai nominal unik.\n` +
         `4. Detail pesanan langsung dikirim otomatis!\n\n` +
-        `💬 *Komplain & Kendala:* Hubungi Telegram @Naufal_090`,
+        `💬 *Komplain & Kendala:* Hubungi Telegram @Naufal\\_090`,
         {
           parse_mode: 'Markdown',
         }
