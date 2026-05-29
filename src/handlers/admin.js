@@ -61,14 +61,15 @@ function registerAdminHandlers(bot) {
 
     adminState.set(String(msg.chat.id), { step: 'add_digital_items', productId });
     bot.sendMessage(msg.chat.id,
-      `*Tambah Stok Akun Digital*\n\n` +
+      `*🔑 Tambah Stok Akun*\n` +
+      `───\n` +
       `Produk: *${product.name}*\n\n` +
       `Silakan kirim detail akun (satu akun per baris) dengan format:\n` +
       `\`email:password\` atau \`username:password\`\n\n` +
       `Contoh:\n` +
       `\`budi@gmail.com:rahasiabudi123\`\n` +
       `\`andi@gmail.com:rahasiaandi456\`\n\n` +
-      `💡 _Setiap baris akan diinput sebagai 1 stok terpisah secara otomatis._\n` +
+      `💡 _Setiap baris akan diinput sebagai 1 unit stok secara otomatis._\n` +
       `Ketik \`/batal\` untuk membatalkan.`,
       { parse_mode: 'Markdown' }
     ).catch(() => {});
@@ -204,14 +205,15 @@ function registerAdminHandlers(bot) {
 
       adminState.set(String(chatId), { step: 'add_digital_items', productId });
       bot.sendMessage(chatId,
-        `*Tambah Stok Akun Digital*\n\n` +
+        `*🔑 Tambah Stok Akun*\n` +
+        `───\n` +
         `Produk: *${product.name}*\n\n` +
         `Silakan kirim detail akun (satu akun per baris) dengan format:\n` +
         `\`email:password\` atau \`username:password\`\n\n` +
         `Contoh:\n` +
         `\`budi@gmail.com:rahasiabudi123\`\n` +
         `\`andi@gmail.com:rahasiaandi456\`\n\n` +
-        `💡 _Setiap baris akan diinput sebagai 1 stok terpisah secara otomatis._\n` +
+        `💡 _Setiap baris akan diinput sebagai 1 unit stok secara otomatis._\n` +
         `Ketik \`/batal\` untuk membatalkan.`,
         { parse_mode: 'Markdown' }
       ).catch(() => {});
@@ -232,7 +234,8 @@ function registerAdminHandlers(bot) {
 
       adminState.set(String(chatId), { step: 'add_digital_link_url', productId });
       bot.sendMessage(chatId,
-        `*Tambah Tautan Produk Digital*\n\n` +
+        `*🔗 Tambah Link Produk*\n` +
+        `───\n` +
         `Produk: *${product.name}*\n\n` +
         `Silakan kirimkan link/tautan download atau akses produk Anda:\n` +
         `💡 _Contoh: https://google-drive.com/share/folder-id_\n\n` +
@@ -441,13 +444,13 @@ function showAdminMenu(bot, chatId, messageId) {
   const todaySales = orderQueries.getTodaySales.get();
 
   let text =
-    `*Panel Admin Toko Digital*\n\n` +
-    `Ringkasan performa hari ini:\n` +
-    `• Total Produk: ${products.length} item\n` +
-    `• Stok Menipis: ${lowStock.length} produk\n` +
-    `• Pesanan Pending: ${pendingOrders.length} order\n` +
-    `• Penjualan: ${todaySales.total_orders} transaksi (${formatRupiah(todaySales.total_revenue)})\n\n` +
+    `*👑 Panel Kontrol Admin*\n` +
     `───\n` +
+    `Ringkasan Performa Hari Ini:\n` +
+    `• Total Produk: *${products.length} item*\n` +
+    `• Stok Menipis: *${lowStock.length} produk*\n` +
+    `• Pesanan Pending: *${pendingOrders.length} order*\n` +
+    `• Penjualan: *${todaySales.total_orders} transaksi* (${formatRupiah(todaySales.total_revenue)})\n\n` +
     `Pilih menu pengelolaan di bawah ini:`;
 
   if (messageId) {
@@ -491,7 +494,8 @@ function saveProductWizard(bot, chatId, productData) {
   try {
     const result = productQueries.insert.run(productData);
     bot.sendMessage(chatId,
-      `✅ *Produk Berhasil Ditambahkan!*\n\n` +
+      `*✅ Produk Berhasil Ditambahkan*\n` +
+      `───\n` +
       `• ID Produk: \`${result.lastInsertRowid}\`\n` +
       `• Nama: *${productData.name}*\n` +
       `• Deskripsi: _${productData.description || '-'}_\n` +
@@ -771,9 +775,11 @@ function handleAdminInput(bot, msg, state) {
       adminState.set(String(chatId), state);
 
       bot.sendMessage(chatId,
-        `🔗 *Link Produk:* \`${url}\`\n\n` +
-        `Langkah 2/2: *Berapa kapasitas/stok untuk link ini?*\n` +
-        `Ketikkan angka jumlah pembelian yang diizinkan (contoh: \`100\`):`
+        `*🔗 Input Tautan Produk*\n` +
+        `───\n` +
+        `Tautan: \`${url}\`\n\n` +
+        `Langkah 2/2: *Tentukan Kapasitas Stok*\n` +
+        `Ketikkan angka jumlah unit pembelian yang diizinkan (contoh: \`100\`):`
       ).catch(() => {});
       break;
     }
@@ -803,12 +809,13 @@ function handleAdminInput(bot, msg, state) {
         const newStock = product.stock + amount;
 
         bot.sendMessage(chatId,
-          `✅ *Tautan Berhasil Disimpan!*\n\n` +
+          `*🔗 Tautan Berhasil Disimpan*\n` +
+          `───\n` +
           `• Produk: *${product.name}*\n` +
           `• Tautan: \`${state.linkUrl}\`\n` +
           `• Kapasitas Stok Ditambah: \`+${amount} unit\`\n` +
           `• Total Stok Sekarang: *${newStock} unit*\n\n` +
-          `Pembeli selanjutnya akan otomatis menerima tautan ini saat sukses melakukan pembayaran!`,
+          `💡 _Pembeli selanjutnya akan otomatis menerima tautan ini setelah pembayaran lunas!_`,
           {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -837,7 +844,7 @@ function showStockList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    const text = 'Belum ada produk. Tambahkan produk dulu!';
+    const text = 'Belum ada produk. Tambahkan produk terlebih dahulu!';
     bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
@@ -847,15 +854,16 @@ function showStockList(bot, chatId, messageId) {
   }
 
   let text =
-    `*Pengelolaan Stok Produk*\n\n` +
-    `Pilih produk di bawah ini untuk mengelola stok digital:\n\n`;
+    `*📦 Kelola Stok Produk*\n` +
+    `───\n` +
+    `Pilih produk di bawah ini untuk mengelola stok:\n\n`;
 
   const buttons = [];
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-    const statusText = p.is_active ? ' (Nonaktif)' : '';
+    const statusText = p.is_active ? '' : ' (Nonaktif)';
     text += `${stockIcon} *${p.name}*${statusText}\n` +
-            `   Stok saat ini: *${p.stock}* | Harga: *${formatRupiah(p.price)}*\n\n`;
+            `   Stok: *${p.stock} unit* | Harga: *${formatRupiah(p.price)}*\n\n`;
 
     buttons.push([{
       text: `${stockIcon} ${p.name} (${p.stock} unit)`,
@@ -883,15 +891,16 @@ function showStockManage(bot, chatId, messageId, productId) {
   const stockText = product.stock <= 0 ? 'Habis (Silakan Restock)' : `${product.stock} unit`;
 
   const text =
-    `*Kelola Stok: ${product.name.toUpperCase()}*\n\n` +
-    `• Harga Produk: *${formatRupiah(product.price)}*\n` +
-    `• Kategori: \`${product.category}\`\n` +
-    `• Stok Saat Ini: ${stockIcon} *${stockText}*\n\n` +
+    `*📦 Kelola Stok Produk*\n` +
     `───\n` +
+    `Produk: *${product.name}*\n` +
+    `• Harga: *${formatRupiah(product.price)}*\n` +
+    `• Kategori: *${product.category}*\n` +
+    `• Sisa Stok: ${stockIcon} *${stockText}*\n\n` +
     `*Instruksi:*\n` +
-    `- Gunakan tombol *+1 / -1* untuk edit manual.\n` +
-    `- Klik *Input Akun* untuk tambah list credentials massal.\n` +
-    `- Klik *Input Link* untuk set tautan download.`;
+    `• Gunakan tombol *+1 / -1* untuk update stok manual.\n` +
+    `• Klik *Input Akun* untuk menambah akun digital massal.\n` +
+    `• Klik *Input Link* untuk mengisi link download/akses produk.`;
 
   bot.editMessageText(text, {
     chat_id: chatId,
@@ -928,17 +937,18 @@ function showStockOverview(bot, chatId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    bot.sendMessage(chatId, 'Belum ada produk.').catch(() => {});
+    bot.sendMessage(chatId, 'Belum ada produk di database.').catch(() => {});
     return;
   }
 
   let text =
-    `*Ringkasan Status Stok*\n\n`;
+    `*📊 Status Stok Produk*\n` +
+    `───\n`;
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
     const activeText = p.is_active ? '' : ' _(Nonaktif)_';
     text += `${stockIcon} *${p.name}*${activeText}\n` +
-            `   ↳ Stok: *${p.stock} unit* | *${formatRupiah(p.price)}*\n\n`;
+            `   Stok: *${p.stock} unit* | Harga: *${formatRupiah(p.price)}*\n\n`;
   }
 
   bot.sendMessage(chatId, text, {
@@ -968,7 +978,7 @@ function showQuickStockList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    const text = 'Belum ada produk. Tambahkan produk dulu!';
+    const text = 'Belum ada produk. Silakan tambahkan produk terlebih dahulu!';
     bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
@@ -977,19 +987,25 @@ function showQuickStockList(bot, chatId, messageId) {
     return;
   }
 
-  let text = '*Tambah Stok Cepat*\n\nPilih produk untuk tambah stok:\n\n';
+  let text =
+    `*⚡ Tambah Stok Cepat*\n` +
+    `───\n` +
+    `Pilih produk di bawah untuk mengisi stok:\n\n`;
 
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-    text += `${stockIcon} ${p.name} — Stok: ${p.stock}\n`;
+    const activeText = p.is_active ? '' : ' (Nonaktif)';
+    text += `${stockIcon} *${p.name}*${activeText}\n` +
+            `   Stok: *${p.stock} unit*\n\n`;
   }
 
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: quickStockKeyboard(products),
   }).catch(() => {
-    bot.sendMessage(chatId, text, { reply_markup: quickStockKeyboard(products) }).catch(() => {});
+    bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: quickStockKeyboard(products) }).catch(() => {});
   });
 }
 
@@ -1000,25 +1016,28 @@ function showQuickStockAmount(bot, chatId, messageId, productId) {
   const stockIcon = product.stock <= 0 ? '🔴' : product.stock <= 5 ? '🟡' : '🟢';
 
   const text =
-    `*Tambah Stok: ${product.name}*\n\n` +
-    `• Stok saat ini: ${stockIcon} ${product.stock}\n` +
-    `• Harga: ${formatRupiah(product.price)}\n\n` +
-    `Pilih jumlah yang ingin ditambahkan:`;
+    `*⚡ Tambah Stok Cepat*\n` +
+    `───\n` +
+    `Produk: *${product.name}*\n` +
+    `• Sisa Stok: ${stockIcon} *${product.stock} unit*\n` +
+    `• Harga: *${formatRupiah(product.price)}*\n\n` +
+    `Pilih nominal jumlah stok yang ingin ditambahkan:`;
 
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [
-          { text: '+1', callback_data: `qstock_add_${productId}_1` },
-          { text: '+5', callback_data: `qstock_add_${productId}_5` },
-          { text: '+10', callback_data: `qstock_add_${productId}_10` },
+          { text: '➕ +1', callback_data: `qstock_add_${productId}_1` },
+          { text: '➕ +5', callback_data: `qstock_add_${productId}_5` },
+          { text: '➕ +10', callback_data: `qstock_add_${productId}_10` },
         ],
         [
-          { text: '+25', callback_data: `qstock_add_${productId}_25` },
-          { text: '+50', callback_data: `qstock_add_${productId}_50` },
-          { text: '+100', callback_data: `qstock_add_${productId}_100` },
+          { text: '➕ +25', callback_data: `qstock_add_${productId}_25` },
+          { text: '➕ +50', callback_data: `qstock_add_${productId}_50` },
+          { text: '➕ +100', callback_data: `qstock_add_${productId}_100` },
         ],
         [
           { text: '✏️ Ketik Jumlah Manual', callback_data: `qstock_set_${productId}` },
@@ -1057,7 +1076,7 @@ function showEditList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    bot.editMessageText('Belum ada produk.', {
+    bot.editMessageText('Belum ada produk di database.', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1065,9 +1084,15 @@ function showEditList(bot, chatId, messageId) {
     return;
   }
 
-  bot.editMessageText('Edit Produk\n\nPilih produk yang ingin diedit:', {
+  let text =
+    `*✏️ Pilih Produk untuk Diedit*\n` +
+    `───\n` +
+    `Silakan pilih produk yang ingin diubah detail informasinya:`;
+
+  bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: productListKeyboard(products, 'admin_edit'),
   }).catch(() => {});
 }
@@ -1079,34 +1104,35 @@ function showEditProduct(bot, chatId, messageId, productId) {
   const statusText = product.is_active ? 'Aktif' : 'Nonaktif';
 
   const text =
-    `*Edit Produk*\n\n` +
-    `• Nama: ${product.name}\n` +
-    `• Deskripsi: ${product.description || '-'}\n` +
-    `• Harga: ${formatRupiah(product.price)}\n` +
-    `• Stok: ${product.stock}\n` +
-    `• Kategori: ${product.category}\n` +
-    `• Status: ${statusText}\n\n` +
+    `*✏️ Detail Produk (Mode Edit)*\n` +
     `───\n` +
-    `Pilih bagian yang ingin diubah:`;
+    `• Nama: *${product.name}*\n` +
+    `• Deskripsi: _${product.description || '-'}_\n` +
+    `• Harga: *${formatRupiah(product.price)}*\n` +
+    `• Sisa Stok: *${product.stock} unit*\n` +
+    `• Kategori: *${product.category}*\n` +
+    `• Status: *${statusText}*\n\n` +
+    `Silakan pilih bagian data produk yang ingin diubah:`;
 
-  const toggleText = product.is_active ? 'Nonaktifkan' : 'Aktifkan';
+  const toggleText = product.is_active ? '🔴 Nonaktifkan' : '🟢 Aktifkan';
 
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [
-          { text: 'Nama', callback_data: `edit_name_${productId}` },
-          { text: 'Deskripsi', callback_data: `edit_desc_${productId}` },
+          { text: '📝 Nama', callback_data: `edit_name_${productId}` },
+          { text: '📄 Deskripsi', callback_data: `edit_desc_${productId}` },
         ],
         [
-          { text: 'Harga', callback_data: `edit_price_${productId}` },
-          { text: 'Stok', callback_data: `edit_stock_${productId}` },
+          { text: '💰 Harga', callback_data: `edit_price_${productId}` },
+          { text: '📦 Stok', callback_data: `edit_stock_${productId}` },
         ],
         [
-          { text: 'Kategori', callback_data: `edit_cat_${productId}` },
-          { text: 'Gambar', callback_data: `edit_img_${productId}` },
+          { text: '🏷️ Kategori', callback_data: `edit_cat_${productId}` },
+          { text: '🖼️ Gambar', callback_data: `edit_img_${productId}` },
         ],
         [
           { text: toggleText, callback_data: `edit_toggle_${productId}` },
@@ -1126,7 +1152,7 @@ function showDeleteList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    bot.editMessageText('Belum ada produk.', {
+    bot.editMessageText('Belum ada produk di database.', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1134,9 +1160,15 @@ function showDeleteList(bot, chatId, messageId) {
     return;
   }
 
-  bot.editMessageText('Hapus Produk\n\nPilih produk yang ingin dihapus:', {
+  let text =
+    `*🗑️ Pilih Produk untuk Dihapus*\n` +
+    `───\n` +
+    `Silakan pilih produk yang ingin dihapus secara permanen dari katalog:`;
+
+  bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: productListKeyboard(products, 'admin_delete'),
   }).catch(() => {});
 }
@@ -1146,18 +1178,21 @@ function confirmDeleteProduct(bot, chatId, messageId, productId) {
   if (!product) return;
 
   bot.editMessageText(
-    `Yakin ingin menghapus produk ${product.name}?\n\n` +
-    `• Harga: ${formatRupiah(product.price)}\n` +
-    `• Stok: ${product.stock}\n\n` +
-    `⚠️ Tindakan ini tidak bisa dibatalkan!`,
+    `*⚠️ Konfirmasi Hapus Produk*\n` +
+    `───\n` +
+    `Apakah Anda yakin ingin menghapus produk *${product.name}*?\n\n` +
+    `• Harga: *${formatRupiah(product.price)}*\n` +
+    `• Sisa Stok: *${product.stock} unit*\n\n` +
+    `⚠️ _Tindakan ini bersifat permanen dan tidak dapat dibatalkan!_`,
     {
       chat_id: chatId,
       message_id: messageId,
+      parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
           [
-            { text: 'Ya, Hapus', callback_data: `admin_del_yes_${productId}` },
-            { text: 'Batal', callback_data: 'admin_delete_list' },
+            { text: '🗑️ Ya, Hapus', callback_data: `admin_del_yes_${productId}` },
+            { text: '🔙 Batal', callback_data: 'admin_delete_list' },
           ],
         ],
       },
@@ -1187,19 +1222,20 @@ function showDailyReport(bot, chatId, messageId) {
   const lowStock = productQueries.getLowStock.all();
 
   let text =
-    `*Laporan Statistik Harian Toko*\n\n` +
-    `• Total Pendapatan: *${formatRupiah(sales.total_revenue)}*\n` +
-    `• Pesanan Sukses (Lunas): *${sales.total_orders} transaksi*\n` +
+    `*📊 Laporan Statistik Harian*\n` +
+    `───\n` +
+    `• Pendapatan Hari Ini: *${formatRupiah(sales.total_revenue)}*\n` +
+    `• Transaksi Sukses: *${sales.total_orders} transaksi*\n` +
     `• Pesanan Pending: *${pending.length} order*\n\n` +
-    `*Status Gudang Produk:*\n` +
-    `• Total Jenis Produk: ${products.length} varian\n` +
-    `• Produk Stok Menipis: ${lowStock.length} item\n`;
+    `*Status Inventaris Produk:*\n` +
+    `• Total Varian Produk: *${products.length} item*\n` +
+    `• Produk Stok Menipis: *${lowStock.length} item*\n`;
 
   if (lowStock.length > 0) {
     text += `\n⚠️ *Daftar Produk Butuh Restock:*\n`;
     for (const p of lowStock) {
       const icon = p.stock <= 0 ? '🔴' : '🟡';
-      text += `  ${icon} ${p.name} (Sisa: *${p.stock}*)\n`;
+      text += `  ${icon} ${p.name} (Sisa: *${p.stock} unit*)\n`;
     }
   }
 
@@ -1225,7 +1261,7 @@ function showAdminOrders(bot, chatId, messageId) {
   const orders = orderQueries.getAll.all();
 
   if (orders.length === 0) {
-    bot.editMessageText('Belum ada pesanan.', {
+    bot.editMessageText('Belum ada riwayat pesanan masuk.', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1234,7 +1270,8 @@ function showAdminOrders(bot, chatId, messageId) {
   }
 
   let text =
-    `*Daftar Pesanan Masuk*\n` +
+    `*📋 Daftar Pesanan Masuk*\n` +
+    `───\n` +
     `Menampilkan 20 transaksi terbaru toko:\n\n`;
 
   const buttons = [];
@@ -1272,11 +1309,12 @@ function showAdminOrderDetail(bot, chatId, messageId, orderId) {
   const label = statusLabel(order.status);
 
   let text =
-    `*Detail Transaksi (Admin)*\n\n` +
+    `*📋 Detail Transaksi (Admin)*\n` +
+    `───\n` +
     `• ID Order: \`${orderId}\`\n` +
     `• Status: ${emoji} *${label}*\n` +
     `• Tanggal: _${formatDate(order.created_at)}_\n` +
-    `• Pembeli: ${order.full_name || '-'} (@${order.username || '-'})\n` +
+    `• Pembeli: *${order.full_name || '-'}* (@${order.username || '-'})\n` +
     `• Chat ID: \`${order.chat_id}\`\n\n` +
     `*Rincian Item Belanja:*\n`;
 
@@ -1309,7 +1347,7 @@ function showLowStock(bot, chatId, messageId) {
   const products = productQueries.getLowStock.all();
 
   if (products.length === 0) {
-    bot.editMessageText('Semua produk stoknya aman!', {
+    bot.editMessageText('Semua produk memiliki stok aman!', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1317,7 +1355,10 @@ function showLowStock(bot, chatId, messageId) {
     return;
   }
 
-  let text = '⚠️ Produk Stok Menipis\n\n';
+  let text =
+    `*⚠️ Produk Stok Menipis*\n` +
+    `───\n` +
+    `Daftar produk dengan stok kurang dari 5 unit:\n\n`;
 
   const buttons = [];
   for (const p of products) {

@@ -67,8 +67,8 @@ function registerStartHandlers(bot) {
   // REPLY KEYBOARD HANDLERS (menu bawah chat)
   // ============================================================
 
-  // Katalog Produk
-  bot.onText(/^Katalog Produk$/, (msg) => {
+  // 📁 Katalog Produk
+  bot.onText(/^📁 Katalog Produk$/, (msg) => {
     const chatId = msg.chat.id;
     const products = productQueries.getAll.all();
 
@@ -110,8 +110,8 @@ function registerStartHandlers(bot) {
     }).catch(() => {});
   });
 
-  // Pesanan Saya
-  bot.onText(/^Pesanan Saya$/, (msg) => {
+  // 📦 Pesanan Saya
+  bot.onText(/^📦 Pesanan Saya$/, (msg) => {
     const chatId = msg.chat.id;
     const orders = orderQueries.getByChat.all(String(chatId));
 
@@ -158,8 +158,8 @@ function registerStartHandlers(bot) {
     }).catch(() => {});
   });
 
-  // Cara Belanja
-  bot.onText(/^Cara Belanja$/, (msg) => {
+  // 📱 Cara Belanja
+  bot.onText(/^📱 Cara Belanja$/, (msg) => {
     const chatId = msg.chat.id;
 
     bot.sendMessage(chatId,
@@ -180,8 +180,8 @@ function registerStartHandlers(bot) {
     ).catch(() => {});
   });
 
-  // Informasi Toko
-  bot.onText(/^Informasi Toko$/, (msg) => {
+  // ℹ️ Informasi Toko
+  bot.onText(/^ℹ️ Informasi Toko$/, (msg) => {
     const chatId = msg.chat.id;
 
     const products = productQueries.getAll.all();
