@@ -14,32 +14,32 @@ function runQRISDestruction(bot, chatId, messageId, onComplete) {
       await bot.editMessageCaption(
         `*Pembayaran Terdeteksi*\n\nMenghapus invoice QRIS dalam 3 detik...`,
         { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
-      ).catch(() => {});
-      await delay(700);
+      ).catch((err) => console.error('[QRIS-ANIMATION] Frame 1 Error:', err.message));
+      await delay(1000);
       
       // Frame 2: Menghancurkan dalam 2
       await bot.editMessageCaption(
         `*Pembayaran Terdeteksi*\n\nMenghapus invoice QRIS dalam 2 detik...`,
         { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
-      ).catch(() => {});
-      await delay(700);
+      ).catch((err) => console.error('[QRIS-ANIMATION] Frame 2 Error:', err.message));
+      await delay(1000);
       
       // Frame 3: Menghancurkan dalam 1
       await bot.editMessageCaption(
         `*Pembayaran Terdeteksi*\n\nMenghapus invoice QRIS dalam 1 detik...`,
         { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
-      ).catch(() => {});
-      await delay(700);
+      ).catch((err) => console.error('[QRIS-ANIMATION] Frame 3 Error:', err.message));
+      await delay(1000);
       
       // Frame 4: Meledak / Hancur
       await bot.editMessageCaption(
         `*QRIS Telah Dihapus!*`,
         { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
-      ).catch(() => {});
-      await delay(700);
+      ).catch((err) => console.error('[QRIS-ANIMATION] Frame 4 Error:', err.message));
+      await delay(1000);
       
       // Hapus pesan foto QRIS asli
-      await bot.deleteMessage(chatId, messageId).catch(() => {});
+      await bot.deleteMessage(chatId, messageId).catch((err) => console.error('[QRIS-ANIMATION] Delete Error:', err.message));
     } catch (e) {
       console.error('QRIS Destruction Animation error:', e);
     } finally {
