@@ -421,6 +421,9 @@ function cancelOrder(orderId) {
       productQueries.updateStock.run(item.quantity, item.product_id);
     }
 
+    // Kembalikan status digital items (unclaim) agar bisa dibeli lagi
+    db.prepare('UPDATE digital_items SET order_id = NULL, used_at = NULL WHERE order_id = ?').run(orderId);
+
     // Update status
     orderQueries.updateStatus.run('cancelled', orderId);
 

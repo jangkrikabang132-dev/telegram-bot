@@ -254,6 +254,37 @@ function registerAdminHandlers(bot) {
       return;
     }
 
+    // Hapus single digital item stock
+    if (data.startsWith('stock_delete_item_')) {
+      const parts = data.replace('stock_delete_item_', '').split('_');
+      const itemId = parseInt(parts[0]);
+      const productId = parseInt(parts[1]);
+
+      const { db } = require('../database');
+      db.prepare('DELETE FROM digital_items WHERE id = ?').run(itemId);
+
+      // Sinkronkan stock di tabel products
+      const unusedCount = db.prepare('SELECT COUNT(*) as count FROM digital_items WHERE product_id = ? AND order_id IS NULL').get(productId).count;
+      db.prepare('UPDATE products SET stock = ? WHERE id = ?').run(unusedCount, productId);
+
+      bot.answerCallbackQuery(query.id, { text: '🗑️ Item berhasil dihapus' });
+      showDigitalStockList(bot, chatId, messageId, productId);
+      return;
+    }
+
+    // Hapus semua stok tersedia
+    if (data.startsWith('stock_clear_unused_')) {
+      const productId = parseInt(data.replace('stock_clear_unused_', ''));
+      
+      const { db } = require('../database');
+      db.prepare('DELETE FROM digital_items WHERE product_id = ? AND order_id IS NULL').run(productId);
+      db.prepare('UPDATE products SET stock = 0 WHERE id = ?').run(productId);
+
+      bot.answerCallbackQuery(query.id, { text: '🗑️ Semua stok tersedia dihapus' });
+      showDigitalStockList(bot, chatId, messageId, productId);
+      return;
+    }
+
     // Tambah stok
     if (data.startsWith('stock_add_')) {
       const parts = data.replace('stock_add_', '').split('_');
@@ -974,24 +1005,39 @@ function showDigitalStockList(bot, chatId, messageId, productId) {
   // Escape username/tag untuk menghindari bentrok markdown
   text = text.replace(/@/g, '');
 
+  const buttons = [];
+  
+  if (items.length > 0) {
+    const unusedItems = items.filter(i => !i.order_id);
+    if (unusedItems.length > 0) {
+      const displayUnused = unusedItems.slice(0, 25);
+      const row = [];
+      displayUnused.forEach((item, idx) => {
+        row.push({ text: `🗑️ #${idx + 1}`, callback_data: `stock_delete_item_${item.id}_${productId}` });
+        if (row.length === 5 || idx === displayUnused.length - 1) {
+          buttons.push([...row]);
+          row.length = 0;
+        }
+      });
+      buttons.push([{ text: '🗑️ Hapus Semua Stok Tersedia', callback_data: `stock_clear_unused_${productId}` }]);
+    }
+  }
+
+  buttons.push([{ text: '🔙 Kembali Kelola Stok', callback_data: `admin_stock_${productId}` }]);
+  buttons.push([{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }]);
+
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔙 Kembali Kelola Stok', callback_data: `admin_stock_${productId}` }],
-        [{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }],
-      ]
+      inline_keyboard: buttons
     }
   }).catch(() => {
     bot.sendMessage(chatId, text, {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Kembali Kelola Stok', callback_data: `admin_stock_${productId}` }],
-          [{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }],
-        ]
+        inline_keyboard: buttons
       }
     }).catch(() => {});
   });
