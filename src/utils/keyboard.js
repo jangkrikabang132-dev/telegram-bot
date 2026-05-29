@@ -242,6 +242,9 @@ function stockManageKeyboard(productId) {
         { text: '🔗 Input Link', callback_data: `stock_add_link_${productId}` },
       ],
       [
+        { text: '📋 Cek Akun/Link Terinput', callback_data: `stock_view_digital_${productId}` },
+      ],
+      [
         { text: '🔙 Kembali', callback_data: 'admin_stock' },
       ],
     ],

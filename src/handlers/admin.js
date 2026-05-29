@@ -245,6 +245,15 @@ function registerAdminHandlers(bot) {
       return;
     }
 
+    // Cek akun/link terinput (View stock items)
+    if (data.startsWith('stock_view_digital_')) {
+      bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
+      const productId = parseInt(data.replace('stock_view_digital_', ''));
+      showDigitalStockList(bot, chatId, messageId, productId);
+      return;
+    }
+
     // Tambah stok
     if (data.startsWith('stock_add_')) {
       const parts = data.replace('stock_add_', '').split('_');
@@ -907,6 +916,85 @@ function addStock(bot, query, chatId, messageId, productId, amount) {
   });
 
   showStockManage(bot, chatId, messageId, productId);
+}
+
+function showDigitalStockList(bot, chatId, messageId, productId) {
+  const { db } = require('../database');
+  const product = productQueries.getById.get(productId);
+  if (!product) return;
+
+  // Ambil data stock dari digital_items
+  const items = db.prepare(`
+    SELECT * FROM digital_items 
+    WHERE product_id = ? 
+    ORDER BY used_at ASC, id DESC
+  `).all(productId);
+
+  let text =
+    `*📋 Daftar Stok Akun & Link*\n` +
+    `───\n` +
+    `Produk: *${product.name}*\n` +
+    `Total di Database: *${items.length} item*\n\n`;
+
+  if (items.length === 0) {
+    text += `❌ _Belum ada stok digital (akun/link) yang diinputkan untuk produk ini._`;
+  } else {
+    // Kelompokkan stok unused dan used
+    const unusedItems = items.filter(i => !i.order_id);
+    const usedItems = items.filter(i => i.order_id);
+
+    text += `🟢 *STOK TERSEDIA (BELUM DIGUNAKAN) [${unusedItems.length} unit]:*\n`;
+    if (unusedItems.length === 0) {
+      text += `  _Kosong_\n`;
+    } else {
+      // Tampilkan maksimal 25 item agar chat tidak kepanjangan
+      const displayUnused = unusedItems.slice(0, 25);
+      displayUnused.forEach((item, idx) => {
+        text += `  ${idx + 1}. \`${item.content}\`\n`;
+      });
+      if (unusedItems.length > 25) {
+        text += `  _...dan ${unusedItems.length - 25} item lainnya_\n`;
+      }
+    }
+
+    text += `\n🔴 *STOK TERJUAL (SUDAH DIKIRIM) [${usedItems.length} unit]:*\n`;
+    if (usedItems.length === 0) {
+      text += `  _Kosong_\n`;
+    } else {
+      const displayUsed = usedItems.slice(0, 15);
+      displayUsed.forEach((item, idx) => {
+        text += `  ${idx + 1}. \`${item.content}\` (Order: \`${item.order_id}\`)\n`;
+      });
+      if (usedItems.length > 15) {
+        text += `  _...dan ${usedItems.length - 15} item lainnya_\n`;
+      }
+    }
+  }
+
+  // Escape username/tag untuk menghindari bentrok markdown
+  text = text.replace(/@/g, '');
+
+  bot.editMessageText(text, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔙 Kembali Kelola Stok', callback_data: `admin_stock_${productId}` }],
+        [{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }],
+      ]
+    }
+  }).catch(() => {
+    bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Kembali Kelola Stok', callback_data: `admin_stock_${productId}` }],
+          [{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }],
+        ]
+      }
+    }).catch(() => {});
+  });
 }
 
 function showStockOverview(bot, chatId) {
