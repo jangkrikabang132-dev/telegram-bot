@@ -54,9 +54,18 @@ class DanaListenerService : NotificationListenerService() {
             val keywordsString = prefs.getString("filter_keywords", "DANA,DANA Bisnis,Menerima,transfer,Rp") ?: ""
             val keywords = keywordsString.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
-            // Evaluasi filter: 
-            // 1. Jika package name DANA asli (id.dana)
-            // 2. Atau jika notifikasi mengandung salah satu kata kunci filter (untuk fleksibilitas testing)
+            val targetPackagesString = prefs.getString("target_packages", "id.dana") ?: "id.dana"
+            val allowedPackages = targetPackagesString.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .ifEmpty { listOf("id.dana") }
+
+            val isAllowedApp = allowedPackages.any { packageName.equals(it, ignoreCase = true) }
+            if (!isAllowedApp) {
+                Log.d(TAG, "Notifikasi dari [$packageName] diabaikan karena tidak ada di daftar Aplikasi Target.")
+                return
+            }
+
             val isDanaApp = packageName == "id.dana"
             var matchesKeyword = false
             for (keyword in keywords) {

@@ -18,52 +18,12 @@ function registerPaymentChecker(bot) {
     const messageId = query.message.message_id;
     const data = query.data;
 
-    // ==================== SUDAH BAYAR ====================
+    // ==================== SUDAH BAYAR (LEGACY) ====================
     if (data.startsWith('confirm_self_paid_')) {
-      const orderId = data.replace('confirm_self_paid_', '');
-      const order = orderQueries.getById.get(orderId);
-
-      if (!order) {
-        bot.answerCallbackQuery(query.id, {
-          text: '❌ Order tidak ditemukan',
-          show_alert: true,
-        });
-        return;
-      }
-
-      // Cek apakah order masih pending
-      if (order.status !== 'pending') {
-        const statusMsg = order.status === 'paid'
-          ? '✅ Pembayaran sudah dikonfirmasi sebelumnya!'
-          : `ℹ️ Status order: ${order.status}`;
-
-        bot.answerCallbackQuery(query.id, {
-          text: statusMsg,
-          show_alert: true,
-        });
-        return;
-      }
-
-      // Cek apakah order milik user ini
-      if (String(order.chat_id) !== String(chatId)) {
-        bot.answerCallbackQuery(query.id, {
-          text: '❌ Order ini bukan milik Anda',
-          show_alert: true,
-        });
-        return;
-      }
-
       bot.answerCallbackQuery(query.id, {
-        text: '⏳ Memproses pembayaran...',
+        text: '⚠️ Fitur konfirmasi mandiri dinonaktifkan demi keamanan. Pembayaran Anda akan diverifikasi otomatis oleh sistem. Silakan klik tombol "Cek Status Pembayaran" untuk mengecek status terbaru.',
+        show_alert: true,
       });
-
-      // Panggil delivery service terpadu
-      await processOrderDelivery(bot, orderId, order.unique_amount || order.total_amount, {
-        qrisMessageId: messageId,
-        useAnimation: true,
-      });
-
-      console.log(`✅ Auto-confirm pembayaran & delivery: ${orderId} oleh user ${chatId}`);
       return;
     }
 

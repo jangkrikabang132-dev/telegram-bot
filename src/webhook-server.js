@@ -78,6 +78,29 @@ function createWebhookServer() {
         });
       }
 
+      // Filter untuk mencegah bypass dari notifikasi push Telegram/chat sendiri
+      const lowerMessage = (message || '').toLowerCase();
+      const lowerSource = (source || '').toLowerCase();
+
+      if (
+        lowerSource.includes('telegram') ||
+        lowerSource.includes('whatsapp') ||
+        lowerSource.includes('discord') ||
+        lowerMessage.includes('invoice') ||
+        lowerMessage.includes('pesanan') ||
+        lowerMessage.includes('menunggu') ||
+        lowerMessage.includes('cara penggunaan') ||
+        lowerMessage.includes('qris') ||
+        lowerMessage.includes('lunas') ||
+        lowerMessage.includes('detail')
+      ) {
+        console.log(`⚠️  [PAYMENT-NOTIFY] Mengabaikan notifikasi palsu / chat bot: Source = ${source}, Message = ${message}`);
+        return res.status(400).json({
+          status: 'ignored',
+          message: 'Notifikasi diabaikan karena terindikasi berasal dari aplikasi chat atau pesan sistem bot'
+        });
+      }
+
       console.log(`💰 [PAYMENT-NOTIFY] Amount masuk: ${formatRupiah(amount)} (source: ${source || 'unknown'})`);
 
       // Cari order pending dengan unique_amount yang cocok

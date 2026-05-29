@@ -73,6 +73,11 @@ class MainActivity : AppCompatActivity() {
             saveConfig()
         }
 
+        // Tombol Pilih Aplikasi dari Daftar
+        binding.btnSelectApps.setOnClickListener {
+            showAppPickerDialog()
+        }
+
         // Tombol Request Izin Akses Notifikasi
         binding.btnPermission.setOnClickListener {
             try {
@@ -113,10 +118,12 @@ class MainActivity : AppCompatActivity() {
         val webhookUrl = prefs.getString("webhook_url", "https://decidable-unlucky-upscale.ngrok-free.dev") ?: ""
         val apiKey = prefs.getString("api_key", "rahasia-bot-toko-2026") ?: ""
         val filterKeywords = prefs.getString("filter_keywords", "DANA,DANA Bisnis,Menerima,transfer,Rp") ?: ""
+        val targetPackages = prefs.getString("target_packages", "id.dana") ?: ""
 
         binding.etWebhookUrl.setText(webhookUrl)
         binding.etApiKey.setText(apiKey)
         binding.etFilterKeywords.setText(filterKeywords)
+        binding.etTargetPackages.setText(targetPackages)
     }
 
     /**
@@ -126,6 +133,7 @@ class MainActivity : AppCompatActivity() {
         val url = binding.etWebhookUrl.text.toString().trim()
         val key = binding.etApiKey.text.toString().trim()
         val keywords = binding.etFilterKeywords.text.toString().trim()
+        val targetPackages = binding.etTargetPackages.text.toString().trim()
 
         if (url.isEmpty()) {
             binding.etWebhookUrl.error = "URL Webhook wajib diisi!"
@@ -136,6 +144,7 @@ class MainActivity : AppCompatActivity() {
             putString("webhook_url", url)
             putString("api_key", key)
             putString("filter_keywords", keywords)
+            putString("target_packages", targetPackages)
             apply()
         }
 
@@ -260,5 +269,66 @@ class MainActivity : AppCompatActivity() {
             binding.rvLogs.visibility = View.VISIBLE
             logAdapter.updateData(logs)
         }
+    }
+
+    /**
+     * Menampilkan dialog pilihan aplikasi yang terinstall untuk dipantau notifikasinya
+     */
+    private fun showAppPickerDialog() {
+        val pm = packageManager
+        val mainIntent = Intent(Intent.ACTION_MAIN, null)
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+        
+        val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
+        
+        class AppInfo(val name: String, val packageName: String)
+        val appList = ArrayList<AppInfo>()
+        
+        for (info in resolveInfos) {
+            val name = info.loadLabel(pm).toString()
+            val pkg = info.activityInfo.packageName
+            if (appList.none { it.packageName == pkg }) {
+                appList.add(AppInfo(name, pkg))
+            }
+        }
+        
+        appList.sortBy { it.name.lowercase() }
+        
+        val currentPackages = binding.etTargetPackages.text.toString()
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            
+        val appNames = appList.map { it.name }.toTypedArray()
+        val checkedItems = BooleanArray(appList.size) { idx ->
+            currentPackages.contains(appList[idx].packageName)
+        }
+        
+        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
+        builder.setTitle("Pilih Aplikasi Target")
+        builder.setMultiChoiceItems(appNames, checkedItems) { _, which, isChecked ->
+            checkedItems[which] = isChecked
+        }
+        
+        builder.setPositiveButton("OK") { dialog, _ ->
+            val selectedPackages = ArrayList<String>()
+            for (i in checkedItems.indices) {
+                if (checkedItems[i]) {
+                    selectedPackages.add(appList[i].packageName)
+                }
+            }
+            if (selectedPackages.isEmpty()) {
+                selectedPackages.add("id.dana")
+                Toast.makeText(this, "Minimal memilih 1 aplikasi. Otomatis diset ke DANA.", Toast.LENGTH_SHORT).show()
+            }
+            binding.etTargetPackages.setText(selectedPackages.joinToString(", "))
+            dialog.dismiss()
+        }
+        
+        builder.setNegativeButton("Batal") { dialog, _ ->
+            dialog.dismiss()
+        }
+        
+        builder.show()
     }
 }

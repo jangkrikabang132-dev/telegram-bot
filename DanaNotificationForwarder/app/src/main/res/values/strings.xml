@@ -21,4 +21,7 @@
     
     <string name="hint_filter_keywords">Filter Kata Kunci Notifikasi (pisahkan koma)</string>
     <string name="default_filter_keywords">DANA,DANA Bisnis,Menerima,transfer,Rp</string>
+    
+    <string name="label_target_packages">Aplikasi Target (Package Name, pisahkan koma)</string>
+    <string name="default_target_packages">id.dana</string>
 </resources>

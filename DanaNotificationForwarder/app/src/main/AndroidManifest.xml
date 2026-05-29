@@ -8,6 +8,9 @@
     
     <!-- Izin untuk menyalakan kembali service notifikasi setelah HP dinyalakan (booting) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+    <!-- Izin untuk melihat semua aplikasi terinstall agar bisa dipilih di pengaturan -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:allowBackup="true"
