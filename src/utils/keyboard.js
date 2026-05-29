@@ -4,18 +4,17 @@
 
 /**
  * Reply keyboard persistent di bawah chat (menu utama)
- * Mirip tampilan bot premium — selalu tampil di bawah chat
  */
 function replyMenuKeyboard() {
   return {
     keyboard: [
       [
-        { text: '📁 List Produk' },
-        { text: '📋 Pesanan' },
+        { text: 'Katalog Produk' },
+        { text: 'Pesanan Saya' },
       ],
       [
-        { text: '📱 Cara Order' },
-        { text: 'ℹ️ Informasi' },
+        { text: 'Cara Belanja' },
+        { text: 'Informasi Toko' },
       ],
     ],
     resize_keyboard: true,
@@ -30,12 +29,12 @@ function mainMenuKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: '🛍️ Lihat Produk', callback_data: 'catalog' },
-        { text: '🛒 Keranjang', callback_data: 'cart' },
+        { text: 'Lihat Produk', callback_data: 'catalog' },
+        { text: 'Keranjang', callback_data: 'cart' },
       ],
       [
-        { text: '📋 Pesanan Saya', callback_data: 'my_orders' },
-        { text: '❓ Bantuan', callback_data: 'help' },
+        { text: 'Pesanan Saya', callback_data: 'my_orders' },
+        { text: 'Bantuan', callback_data: 'help' },
       ],
     ],
   };
@@ -48,20 +47,20 @@ function adminMenuKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: '➕ Tambah Produk', callback_data: 'admin_add_product' },
-        { text: '📦 Kelola Stok', callback_data: 'admin_stock' },
+        { text: 'Tambah Produk', callback_data: 'admin_add_product' },
+        { text: 'Kelola Stok', callback_data: 'admin_stock' },
       ],
       [
-        { text: '✏️ Edit Produk', callback_data: 'admin_edit_list' },
-        { text: '🗑️ Hapus Produk', callback_data: 'admin_delete_list' },
+        { text: 'Edit Produk', callback_data: 'admin_edit_list' },
+        { text: 'Hapus Produk', callback_data: 'admin_delete_list' },
       ],
       [
-        { text: '📋 Semua Pesanan', callback_data: 'admin_orders' },
-        { text: '📊 Laporan Toko', callback_data: 'admin_report' },
+        { text: 'Semua Pesanan', callback_data: 'admin_orders' },
+        { text: 'Laporan Toko', callback_data: 'admin_report' },
       ],
       [
-        { text: '⚠️ Stok Menipis', callback_data: 'admin_low_stock' },
-        { text: '🔙 Menu Utama', callback_data: 'main_menu' },
+        { text: 'Stok Menipis', callback_data: 'admin_low_stock' },
+        { text: 'Menu Utama', callback_data: 'main_menu' },
       ],
     ],
   };
@@ -72,13 +71,13 @@ function adminMenuKeyboard() {
  */
 function categoryKeyboard(categories) {
   const buttons = categories.map((cat) => [
-    { text: `📁 ${cat.category}`, callback_data: `cat_${cat.category}` },
+    { text: cat.category, callback_data: `cat_${cat.category}` },
   ]);
   buttons.push([
-    { text: '📋 Semua Produk', callback_data: 'catalog_all' },
+    { text: 'Semua Produk', callback_data: 'catalog_all' },
   ]);
   buttons.push([
-    { text: '🔙 Menu Utama', callback_data: 'main_menu' },
+    { text: 'Menu Utama', callback_data: 'main_menu' },
   ]);
   return { inline_keyboard: buttons };
 }
@@ -90,15 +89,15 @@ function productKeyboard(productId, inStock) {
   const buttons = [];
   if (inStock) {
     buttons.push([
-      { text: '🛒 Tambah ke Keranjang', callback_data: `add_cart_${productId}` },
+      { text: 'Tambah ke Keranjang', callback_data: `add_cart_${productId}` },
     ]);
   } else {
     buttons.push([
-      { text: '🔴 Stok Habis', callback_data: 'out_of_stock' },
+      { text: 'Stok Habis', callback_data: 'out_of_stock' },
     ]);
   }
   buttons.push([
-    { text: '🔙 Kembali ke Katalog', callback_data: 'catalog' },
+    { text: 'Kembali', callback_data: 'catalog' },
   ]);
   return { inline_keyboard: buttons };
 }
@@ -112,7 +111,7 @@ function cartItemKeyboard(productId) {
       [
         { text: '➕', callback_data: `cart_inc_${productId}` },
         { text: '➖', callback_data: `cart_dec_${productId}` },
-        { text: '🗑️ Hapus', callback_data: `cart_rm_${productId}` },
+        { text: 'Hapus', callback_data: `cart_rm_${productId}` },
       ],
     ],
   };
@@ -125,22 +124,22 @@ function cartMainKeyboard(hasItems) {
   if (!hasItems) {
     return {
       inline_keyboard: [
-        [{ text: '🛍️ Lihat Produk', callback_data: 'catalog' }],
-        [{ text: '🔙 Menu Utama', callback_data: 'main_menu' }],
+        [{ text: 'Lihat Produk', callback_data: 'catalog' }],
+        [{ text: 'Menu Utama', callback_data: 'main_menu' }],
       ],
     };
   }
   return {
     inline_keyboard: [
       [
-        { text: '💳 Checkout & Bayar', callback_data: 'checkout' },
+        { text: 'Checkout & Bayar', callback_data: 'checkout' },
       ],
       [
-        { text: '🗑️ Kosongkan Keranjang', callback_data: 'cart_clear' },
-        { text: '🛍️ Lanjut Belanja', callback_data: 'catalog' },
+        { text: 'Kosongkan Keranjang', callback_data: 'cart_clear' },
+        { text: 'Lanjut Belanja', callback_data: 'catalog' },
       ],
       [
-        { text: '🔙 Menu Utama', callback_data: 'main_menu' },
+        { text: 'Menu Utama', callback_data: 'main_menu' },
       ],
     ],
   };
@@ -153,8 +152,8 @@ function confirmKeyboard(yesData, noData) {
   return {
     inline_keyboard: [
       [
-        { text: '✅ Ya', callback_data: yesData },
-        { text: '❌ Tidak', callback_data: noData },
+        { text: 'Ya', callback_data: yesData },
+        { text: 'Tidak', callback_data: noData },
       ],
     ],
   };
@@ -164,13 +163,14 @@ function confirmKeyboard(yesData, noData) {
  * Daftar produk sebagai tombol (untuk admin edit/hapus)
  */
 function productListKeyboard(products, actionPrefix) {
-  const buttons = products.map((p) => [
-    {
-      text: `${p.is_active ? '🟢' : '🔴'} ${p.name} (Stok: ${p.stock})`,
+  const buttons = products.map((p) => {
+    const statusText = p.is_active ? '' : ' (Nonaktif)';
+    return [{
+      text: `${p.name}${statusText} (${p.stock} unit)`,
       callback_data: `${actionPrefix}_${p.id}`,
-    },
-  ]);
-  buttons.push([{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }]);
+    }];
+  });
+  buttons.push([{ text: 'Menu Admin', callback_data: 'admin_menu' }]);
   return { inline_keyboard: buttons };
 }
 
@@ -181,22 +181,22 @@ function editProductKeyboard(productId) {
   return {
     inline_keyboard: [
       [
-        { text: '📝 Nama', callback_data: `edit_name_${productId}` },
-        { text: '📄 Deskripsi', callback_data: `edit_desc_${productId}` },
+        { text: 'Nama', callback_data: `edit_name_${productId}` },
+        { text: 'Deskripsi', callback_data: `edit_desc_${productId}` },
       ],
       [
-        { text: '💰 Harga', callback_data: `edit_price_${productId}` },
-        { text: '📦 Stok', callback_data: `edit_stock_${productId}` },
+        { text: 'Harga', callback_data: `edit_price_${productId}` },
+        { text: 'Stok', callback_data: `edit_stock_${productId}` },
       ],
       [
-        { text: '🏷️ Kategori', callback_data: `edit_cat_${productId}` },
-        { text: '🖼️ Gambar', callback_data: `edit_img_${productId}` },
+        { text: 'Kategori', callback_data: `edit_cat_${productId}` },
+        { text: 'Gambar', callback_data: `edit_img_${productId}` },
       ],
       [
-        { text: product => product.is_active ? '🔴 Nonaktifkan' : '🟢 Aktifkan', callback_data: `edit_toggle_${productId}` },
+        { text: 'Ubah Status', callback_data: `edit_toggle_${productId}` },
       ],
       [
-        { text: '🔙 Menu Admin', callback_data: 'admin_menu' },
+        { text: 'Menu Admin', callback_data: 'admin_menu' },
       ],
     ],
   };
@@ -208,10 +208,10 @@ function editProductKeyboard(productId) {
 function paginationKeyboard(currentPage, totalPages, prefix) {
   const buttons = [];
   if (currentPage > 1) {
-    buttons.push({ text: '⬅️ Sebelumnya', callback_data: `${prefix}_page_${currentPage - 1}` });
+    buttons.push({ text: 'Sebelumnya', callback_data: `${prefix}_page_${currentPage - 1}` });
   }
   if (currentPage < totalPages) {
-    buttons.push({ text: '➡️ Selanjutnya', callback_data: `${prefix}_page_${currentPage + 1}` });
+    buttons.push({ text: 'Selanjutnya', callback_data: `${prefix}_page_${currentPage + 1}` });
   }
   return buttons.length > 0 ? [buttons] : [];
 }
@@ -223,26 +223,26 @@ function stockManageKeyboard(productId) {
   return {
     inline_keyboard: [
       [
-        { text: '➕ +1', callback_data: `stock_add_${productId}_1` },
-        { text: '➕ +5', callback_data: `stock_add_${productId}_5` },
-        { text: '➕ +10', callback_data: `stock_add_${productId}_10` },
+        { text: '+1', callback_data: `stock_add_${productId}_1` },
+        { text: '+5', callback_data: `stock_add_${productId}_5` },
+        { text: '+10', callback_data: `stock_add_${productId}_10` },
       ],
       [
-        { text: '➕ +25', callback_data: `stock_add_${productId}_25` },
-        { text: '➕ +50', callback_data: `stock_add_${productId}_50` },
-        { text: '➕ +100', callback_data: `stock_add_${productId}_100` },
+        { text: '+25', callback_data: `stock_add_${productId}_25` },
+        { text: '+50', callback_data: `stock_add_${productId}_50` },
+        { text: '+100', callback_data: `stock_add_${productId}_100` },
       ],
       [
-        { text: '➖ -1', callback_data: `stock_sub_${productId}_1` },
-        { text: '➖ -5', callback_data: `stock_sub_${productId}_5` },
-        { text: '✏️ Set Manual', callback_data: `stock_set_${productId}` },
+        { text: '-1', callback_data: `stock_sub_${productId}_1` },
+        { text: '-5', callback_data: `stock_sub_${productId}_5` },
+        { text: 'Set Manual', callback_data: `stock_set_${productId}` },
       ],
       [
-        { text: '🔑 Input Akun', callback_data: `stock_add_digital_${productId}` },
-        { text: '🔗 Input Link', callback_data: `stock_add_link_${productId}` },
+        { text: 'Input Akun', callback_data: `stock_add_digital_${productId}` },
+        { text: 'Input Link', callback_data: `stock_add_link_${productId}` },
       ],
       [
-        { text: '🔙 Kembali', callback_data: 'admin_stock' },
+        { text: 'Kembali', callback_data: 'admin_stock' },
       ],
     ],
   };
@@ -259,7 +259,7 @@ function quickStockKeyboard(products) {
       callback_data: `quick_stock_${p.id}`,
     }];
   });
-  buttons.push([{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }]);
+  buttons.push([{ text: 'Menu Admin', callback_data: 'admin_menu' }]);
   return { inline_keyboard: buttons };
 }
 

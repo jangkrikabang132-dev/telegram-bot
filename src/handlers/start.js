@@ -67,8 +67,8 @@ function registerStartHandlers(bot) {
   // REPLY KEYBOARD HANDLERS (menu bawah chat)
   // ============================================================
 
-  // 📁 List Produk
-  bot.onText(/^📁 List Produk$/, (msg) => {
+  // Katalog Produk
+  bot.onText(/^Katalog Produk$/, (msg) => {
     const chatId = msg.chat.id;
     const products = productQueries.getAll.all();
 
@@ -110,8 +110,8 @@ function registerStartHandlers(bot) {
     }).catch(() => {});
   });
 
-  // 📋 Pesanan
-  bot.onText(/^📋 Pesanan$/, (msg) => {
+  // Pesanan Saya
+  bot.onText(/^Pesanan Saya$/, (msg) => {
     const chatId = msg.chat.id;
     const orders = orderQueries.getByChat.all(String(chatId));
 
@@ -158,13 +158,13 @@ function registerStartHandlers(bot) {
     }).catch(() => {});
   });
 
-  // 📱 Cara Order
-  bot.onText(/^📱 Cara Order$/, (msg) => {
+  // Cara Belanja
+  bot.onText(/^Cara Belanja$/, (msg) => {
     const chatId = msg.chat.id;
 
     bot.sendMessage(chatId,
       `*Panduan Cara Berbelanja*\n\n` +
-      `1. Tekan tombol *List Produk* untuk membuka katalog.\n` +
+      `1. Tekan tombol *Katalog Produk* untuk membuka katalog.\n` +
       `2. Pilih produk digital yang ingin Anda beli.\n` +
       `3. Atur jumlah pembelian dengan tombol ➕ dan ➖.\n` +
       `4. Tekan tombol *Bayar*.\n` +
@@ -180,8 +180,8 @@ function registerStartHandlers(bot) {
     ).catch(() => {});
   });
 
-  // ℹ️ Informasi
-  bot.onText(/^ℹ️ Informasi$/, (msg) => {
+  // Informasi Toko
+  bot.onText(/^Informasi Toko$/, (msg) => {
     const chatId = msg.chat.id;
 
     const products = productQueries.getAll.all();
