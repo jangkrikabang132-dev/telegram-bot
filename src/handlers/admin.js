@@ -1183,13 +1183,14 @@ function deleteProduct(bot, query, chatId, messageId, productId) {
   }
 
   try {
-    productQueries.delete.run(productId);
+    const { deleteProductWithHistory } = require('../database');
+    deleteProductWithHistory(productId);
     bot.answerCallbackQuery(query.id, { text: `✅ ${product.name} berhasil dihapus` });
     showDeleteList(bot, chatId, messageId);
   } catch (error) {
     console.error('Delete product error:', error.message);
     bot.answerCallbackQuery(query.id, {
-      text: `⚠️ Tidak dapat menghapus "${product.name}" secara permanen karena sudah memiliki riwayat transaksi/stok. Silakan NONAKTIFKAN produk ini saja melalui menu Edit agar tidak muncul di katalog.`,
+      text: `❌ Gagal menghapus "${product.name}": ${error.message}`,
       show_alert: true
     });
   }

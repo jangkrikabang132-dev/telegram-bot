@@ -455,6 +455,26 @@ function expireOldOrders() {
   return expireTransaction();
 }
 
+/**
+ * Hapus produk beserta seluruh riwayat transaksi, keranjang, dan stok terkait
+ */
+function deleteProductWithHistory(productId) {
+  const deleteTransaction = db.transaction(() => {
+    // 1. Hapus dari keranjang
+    db.prepare('DELETE FROM cart WHERE product_id = ?').run(productId);
+    // 2. Hapus dari digital_items
+    db.prepare('DELETE FROM digital_items WHERE product_id = ?').run(productId);
+    // 3. Hapus dari order_items
+    db.prepare('DELETE FROM order_items WHERE product_id = ?').run(productId);
+    // 4. Hapus dari products
+    db.prepare('DELETE FROM products WHERE id = ?').run(productId);
+    // 5. Bersihkan orders yang tidak memiliki items lagi
+    db.prepare('DELETE FROM orders WHERE order_id NOT IN (SELECT DISTINCT order_id FROM order_items)').run();
+  });
+
+  deleteTransaction();
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -466,4 +486,5 @@ module.exports = {
   createDirectOrder,
   cancelOrder,
   expireOldOrders,
+  deleteProductWithHistory,
 };
