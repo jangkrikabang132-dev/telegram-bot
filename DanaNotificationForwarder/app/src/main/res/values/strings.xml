@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">DANA Notif Forwarder</string>
+    <string name="service_name">Dana Notification Listener</string>
+    
+    <string name="title_settings">Konfigurasi Webhook</string>
+    <string name="label_webhook_url">URL Webhook Bot Telegram</string>
+    <string name="hint_webhook_url">https://decidable-unlucky-upscale.ngrok-free.dev</string>
+    <string name="label_api_key">API Secret Key (x-api-key)</string>
+    <string name="hint_api_key">Masukkan API key...</string>
+    
+    <string name="title_test_payment">Uji Coba Pengiriman Manual</string>
+    <string name="label_test_amount">Nominal Uji Coba (Rp)</string>
+    <string name="hint_test_amount">10000</string>
+    <string name="btn_send_test">Kirim Uji Coba</string>
+    <string name="btn_save_config">Simpan Konfigurasi</string>
+    
+    <string name="title_logs">Riwayat Log Pembayaran</string>
+    <string name="status_service_running">Mendengarkan Notifikasi (Aktif)</string>
+    <string name="status_service_stopped">Akses Notifikasi Belum Diizinkan (Nonaktif)</string>
+    <string name="btn_grant_permission">Buka Akses Notifikasi</string>
+    
+    <string name="hint_filter_keywords">Filter Kata Kunci Notifikasi (pisahkan koma)</string>
+    <string name="default_filter_keywords">DANA,DANA Bisnis,Menerima,transfer,Rp</string>
+</resources>

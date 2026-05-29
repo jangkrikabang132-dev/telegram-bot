@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DANA Blue Theme & Material Colors -->
+    <color name="primary">#008CFF</color>
+    <color name="primary_dark">#0064B7</color>
+    <color name="primary_light">#E5F3FF</color>
+    <color name="accent">#00D285</color> <!-- DANA green -->
+    
+    <color name="background">#FAFCFF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F0F4F8</color>
+    
+    <!-- Status colors -->
+    <color name="status_success">#2EC4B6</color>
+    <color name="status_failed">#FF5C5C</color>
+    <color name="status_ignored">#7A8A9E</color>
+    
+    <!-- Neutral colors -->
+    <color name="text_primary">#1C2434</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="border">#E2E8F0</color>
+    
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

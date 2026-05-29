@@ -1,0 +1,11 @@
+node_modules/
+.env
+*.db
+data/
+
+# Android Build & Local Config
+DanaNotificationForwarder/.gradle/
+DanaNotificationForwarder/local.properties
+DanaNotificationForwarder/app/build/
+DanaNotificationForwarder/.idea/
+DanaNotificationForwarder/*.iml
