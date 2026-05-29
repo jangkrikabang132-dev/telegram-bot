@@ -1,6 +1,6 @@
 const { mainMenuKeyboard, replyMenuKeyboard } = require('../utils/keyboard');
 const { productQueries, orderQueries } = require('../database');
-const { formatRupiah, statusEmoji, statusLabel } = require('../utils/formatter');
+const { formatRupiah, formatDate, statusEmoji, statusLabel } = require('../utils/formatter');
 
 /**
  * Handler untuk /start, /help, dan reply keyboard menu bawah
@@ -15,14 +15,16 @@ function registerStartHandlers(bot) {
     console.log(`📩 /start dari ${name} (${chatId})`);
 
     bot.sendMessage(chatId,
-      `Halo ${name}! 👋\n\n` +
-      `Selamat datang di Toko Online kami! 🛍️\n\n` +
-      `Di sini kamu bisa:\n` +
-      `📁 Lihat dan beli produk\n` +
-      `📱 Bayar langsung via QRIS\n` +
-      `📋 Cek status pesanan\n\n` +
-      `Gunakan menu di bawah untuk navigasi 👇`,
+      `*Selamat Datang di Toko Digital*\n\n` +
+      `Halo *${name}*! 👋\n\n` +
+      `Kami menyediakan berbagai produk digital berkualitas tinggi dengan pengiriman instan secara otomatis.\n\n` +
+      `Layanan Kami:\n` +
+      `• Lihat & beli katalog produk\n` +
+      `• Pembayaran otomatis via QRIS\n` +
+      `• Cek riwayat status pesanan\n\n` +
+      `Silakan gunakan menu di bawah untuk bernavigasi.`,
       {
+        parse_mode: 'Markdown',
         reply_markup: replyMenuKeyboard(),
       }
     ).then(() => {
@@ -38,22 +40,22 @@ function registerStartHandlers(bot) {
     console.log(`📩 /help dari ${chatId}`);
 
     bot.sendMessage(chatId,
-      `📖 Panduan Penggunaan Bot\n\n` +
+      `*Panduan Penggunaan Bot*\n\n` +
       `Perintah Tersedia:\n` +
-      `/start — Mulai & Menu Utama\n` +
-      `/katalog — Lihat daftar produk\n` +
-      `/pesanan — Riwayat pesanan kamu\n` +
-      `/help — Tampilkan bantuan ini\n\n` +
+      `• /start — Kembali ke menu utama\n` +
+      `• /katalog — Lihat daftar produk\n` +
+      `• /pesanan — Riwayat pesanan Anda\n` +
+      `• /help — Tampilkan bantuan ini\n\n` +
       `Cara Berbelanja:\n` +
-      `1️⃣ Tekan "📁 List Produk"\n` +
-      `2️⃣ Pilih produk yang diinginkan\n` +
-      `3️⃣ Atur jumlah dengan ➕ dan ➖\n` +
-      `4️⃣ Tekan "💳 Bayar [Total]"\n` +
-      `5️⃣ Scan QR Code QRIS yang dikirim bot\n` +
-      `6️⃣ Bayar pakai e-wallet / m-banking\n` +
-      `7️⃣ Pembayaran otomatis terkonfirmasi ✅\n\n` +
-      `Ada masalah? Hubungi admin kami.`,
+      `1. Tekan tombol *List Produk*\n` +
+      `2. Pilih produk yang ingin Anda beli\n` +
+      `3. Tentukan jumlah dengan tombol ➕ dan ➖\n` +
+      `4. Tekan *Bayar*\n` +
+      `5. Scan QRIS yang dikirimkan bot\n` +
+      `6. Transfer dengan nominal yang tepat\n` +
+      `7. Pembayaran Anda akan diverifikasi otomatis!`,
       {
+        parse_mode: 'Markdown',
         reply_markup: replyMenuKeyboard(),
       }
     ).catch((err) => {
@@ -72,18 +74,24 @@ function registerStartHandlers(bot) {
 
     if (products.length === 0) {
       bot.sendMessage(chatId,
-        '😕 Belum ada produk tersedia saat ini.\nSilakan cek kembali nanti!'
+        'Belum ada produk tersedia saat ini. Silakan cek kembali nanti!',
+        { parse_mode: 'Markdown' }
       ).catch(() => {});
       return;
     }
 
-    let text = '🛍️ LIST PRODUK\n\n';
+    let text =
+      `*Katalog Produk Tersedia*\n\n` +
+      `Silakan pilih produk dengan menekan nomor tombol di bawah:\n\n`;
+
     products.forEach((p, i) => {
       const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-      text += `[${i + 1}]. ${p.name} ( ${p.stock} )\n`;
+      const stockText = p.stock <= 0 ? 'Habis' : `${p.stock} pcs`;
+      text += `${stockIcon} *[ ${i + 1} ]* ${p.name}\n` +
+              `   Harga: *${formatRupiah(p.price)}* | Stok: *${stockText}*\n\n`;
     });
 
-    text += `\n📄 Halaman 1 / 1`;
+    text += `📄 Halaman 1 dari 1`;
 
     // Buat inline keyboard untuk pilih produk
     const buttons = [];
@@ -97,6 +105,7 @@ function registerStartHandlers(bot) {
     });
 
     bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: buttons },
     }).catch(() => {});
   });
@@ -108,8 +117,9 @@ function registerStartHandlers(bot) {
 
     if (orders.length === 0) {
       bot.sendMessage(chatId,
-        '📋 Belum ada pesanan.\n\nMulai belanja sekarang!',
+        'Belum ada riwayat pesanan. Yuk mulai belanja sekarang!',
         {
+          parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
               [{ text: '🛍️ Lihat Produk', callback_data: 'catalog' }],
@@ -120,15 +130,32 @@ function registerStartHandlers(bot) {
       return;
     }
 
-    let text = '📋 Pesanan Kamu\n\n';
+    let text =
+      `*Pesanan Saya*\n\n` +
+      `Berikut adalah riwayat transaksi belanja Anda:\n\n`;
+
+    const buttons = [];
     for (const order of orders) {
       const emoji = statusEmoji(order.status);
       const label = statusLabel(order.status);
-      text += `${emoji} ${order.order_id}\n`;
-      text += `   💰 ${formatRupiah(order.total_amount)} — ${label}\n\n`;
+      text += `${emoji} *ID Order:* \`${order.order_id}\`\n` +
+              `   Total: *${formatRupiah(order.total_amount)}* — _${label}_\n` +
+              `   Tanggal: ${formatDate(order.created_at)}\n\n`;
+
+      buttons.push([{
+        text: `${emoji} Detail: ${order.order_id}`,
+        callback_data: `order_detail_${order.order_id}`,
+      }]);
     }
 
-    bot.sendMessage(chatId, text).catch(() => {});
+    text += `💡 *Tips:* Klik salah satu tombol di bawah untuk melihat rincian item atau credentials produk Anda!`;
+
+    buttons.push([{ text: '🛍️ Belanja Lagi', callback_data: 'catalog' }]);
+
+    bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons },
+    }).catch(() => {});
   });
 
   // 📱 Cara Order
@@ -136,16 +163,20 @@ function registerStartHandlers(bot) {
     const chatId = msg.chat.id;
 
     bot.sendMessage(chatId,
-      `📱 Cara Order\n\n` +
-      `1️⃣ Tekan "📁 List Produk" untuk lihat katalog\n` +
-      `2️⃣ Pilih produk yang kamu mau\n` +
-      `3️⃣ Atur jumlah dengan tombol ➕ dan ➖\n` +
-      `4️⃣ Tekan "💳 Bayar [Total]"\n` +
-      `5️⃣ Bot mengirim QR Code QRIS\n` +
-      `6️⃣ Scan QR pakai e-wallet (GoPay, OVO, DANA, ShopeePay, dll) atau m-banking\n` +
-      `7️⃣ Pembayaran otomatis terkonfirmasi ✅\n\n` +
-      `⏰ Batas pembayaran: 30 menit\n` +
-      `📌 Jika lewat, order otomatis dibatalkan & stok dikembalikan.`
+      `*Panduan Cara Berbelanja*\n\n` +
+      `1. Tekan tombol *List Produk* untuk membuka katalog.\n` +
+      `2. Pilih produk digital yang ingin Anda beli.\n` +
+      `3. Atur jumlah pembelian dengan tombol ➕ dan ➖.\n` +
+      `4. Tekan tombol *Bayar*.\n` +
+      `5. Bot akan mengirimkan gambar QRIS dinamis.\n` +
+      `6. Scan QR menggunakan E-Wallet atau M-Banking Anda.\n` +
+      `7. Kirim pembayaran sesuai nominal (termasuk kode unik).\n` +
+      `8. Sistem akan memverifikasi lunas dalam beberapa detik dan detail produk langsung terkirim otomatis!\n\n` +
+      `⌛ *Batas Waktu Pembayaran:* 30 Menit.\n` +
+      `💡 _Catatan: Jika melewati batas waktu, pesanan otomatis kedaluwarsa & stok dikembalikan ke sistem._`,
+      {
+        parse_mode: 'Markdown',
+      }
     ).catch(() => {});
   });
 
@@ -158,13 +189,18 @@ function registerStartHandlers(bot) {
     const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
 
     bot.sendMessage(chatId,
-      `ℹ️ Informasi Toko\n\n` +
-      `🏪 Toko Online Bot\n` +
-      `📦 Total Produk: ${totalProducts}\n` +
-      `📊 Total Stok: ${totalStock}\n` +
-      `💳 Pembayaran: QRIS (semua e-wallet & m-banking)\n\n` +
-      `📞 Butuh bantuan? Hubungi admin.\n` +
-      `⏰ Respon admin: 09:00 - 22:00 WIB`
+      `*Informasi Layanan Toko*\n\n` +
+      `• Status Toko: Aktif & Auto-Delivery\n` +
+      `• Varian Produk: *${totalProducts}* kategori\n` +
+      `• Total Stok Digital: *${totalStock}* unit\n` +
+      `• Metode Pembayaran: QRIS Dinamis (Auto-Detect)\n\n` +
+      `💬 *Layanan Bantuan Admin:*\n` +
+      `• Hubungi: @${process.env.ADMIN_USERNAME || 'admin_toko'}\n` +
+      `• Operasional: 09:00 - 22:00 WIB\n\n` +
+      `Terima kasih telah berbelanja di toko kami!`,
+      {
+        parse_mode: 'Markdown',
+      }
     ).catch(() => {});
   });
 
@@ -175,18 +211,21 @@ function registerStartHandlers(bot) {
   bot.on('callback_query', (query) => {
     if (query.data === 'main_menu') {
       const name = query.from.first_name || 'Kak';
-      bot.editMessageText(
-        `Halo ${name}! 👋\n\nPilih menu di bawah:`,
-        {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
+      const text =
+        `*Menu Utama Toko Digital*\n\n` +
+        `Halo *${name}*! 👋\n` +
+        `Silakan pilih menu transaksi Anda di bawah ini:`;
+
+      bot.editMessageText(text, {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: mainMenuKeyboard(),
+      }).catch(() => {
+        bot.sendMessage(query.message.chat.id, text, {
+          parse_mode: 'Markdown',
           reply_markup: mainMenuKeyboard(),
-        }
-      ).catch(() => {
-        bot.sendMessage(query.message.chat.id,
-          `Pilih menu di bawah:`,
-          { reply_markup: mainMenuKeyboard() }
-        );
+        });
       });
       bot.answerCallbackQuery(query.id);
     }
@@ -194,11 +233,14 @@ function registerStartHandlers(bot) {
     if (query.data === 'help') {
       bot.answerCallbackQuery(query.id);
       bot.sendMessage(query.message.chat.id,
-        `📖 Cara Belanja:\n` +
-        `1️⃣ Pilih produk dari "📁 List Produk"\n` +
-        `2️⃣ Atur jumlah lalu "💳 Bayar"\n` +
-        `3️⃣ Scan QR Code QRIS\n` +
-        `4️⃣ Pembayaran otomatis terkonfirmasi ✅`
+        `*Panduan Ringkas Belanja*\n\n` +
+        `1. Pilih produk dari tombol *List Produk*.\n` +
+        `2. Atur jumlah belanja lalu tekan *Bayar*.\n` +
+        `3. Scan QRIS dan bayar sesuai nominal unik.\n` +
+        `4. Detail pesanan langsung dikirim otomatis!`,
+        {
+          parse_mode: 'Markdown',
+        }
       ).catch(() => {});
     }
   });

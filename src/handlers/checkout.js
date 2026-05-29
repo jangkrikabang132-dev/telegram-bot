@@ -55,23 +55,23 @@ function registerCheckoutHandlers(bot) {
 
         // Generate QRIS dinamis dengan UNIQUE AMOUNT (nominal unik)
         const { qrBuffer } = await generateQRIS(order.uniqueAmount);
-
         // Susun caption
         let caption =
-          `✅ Order Dibuat!\n\n` +
-          `📋 ID Order: ${orderId}\n` +
-          `📦 ${product.name} x${qty}\n` +
-          `💰 Total Belanja: ${formatRupiah(order.totalAmount)}\n` +
-          `💲 Nominal Bayar: ${formatRupiah(order.uniqueAmount)}\n\n` +
-          `━━━━━━━━━━━━━━━━━━\n` +
-          `📱 Scan QR Code di bawah untuk membayar\n` +
-          `💰 Bayar tepat: ${formatRupiah(order.uniqueAmount)}\n` +
-          `⏰ Berlaku 30 menit\n\n` +
-          `✅ Pembayaran akan otomatis terkonfirmasi setelah Anda membayar.`;
+          `*Invoice Pembayaran QRIS*\n\n` +
+          `• ID Order: \`${orderId}\`\n` +
+          `• Produk: ${product.name} (x${qty})\n` +
+          `• Nominal Bayar: *${formatRupiah(order.uniqueAmount)}*\n\n` +
+          `───\n` +
+          `*Petunjuk Transfer:*\n` +
+          `1. Scan QR Code QRIS ini.\n` +
+          `2. Pastikan nominal pembayaran *SAMA PERSIS* yaitu *${formatRupiah(order.uniqueAmount)}* (termasuk kode unik).\n` +
+          `3. Pembayaran akan terverifikasi otomatis dalam 5-10 detik.\n\n` +
+          `⌛ _Berlaku 30 menit. Pesanan otomatis batal jika belum dibayar._`;
 
         // Kirim QR code
         const sentMessage = await bot.sendPhoto(chatId, qrBuffer, {
           caption: caption,
+          parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Cek Status Pembayaran', callback_data: `check_payment_${orderId}` }],
@@ -91,16 +91,14 @@ function registerCheckoutHandlers(bot) {
         const adminChatId = process.env.ADMIN_CHAT_ID;
         if (adminChatId) {
           bot.sendMessage(adminChatId,
-            `🆕 Pesanan Baru!\n\n` +
-            `📋 Order: ${orderId}\n` +
-            `👤 Dari: ${fullName} (@${username})\n` +
-            `📦 ${product.name} x${qty}\n` +
-            `💰 Total: ${formatRupiah(order.totalAmount)}\n` +
-            `💲 Nominal QRIS: ${formatRupiah(order.uniqueAmount)}\n` +
-            `📱 Pembayaran via QRIS\n\n` +
-            `⏳ Menunggu pembayaran...\n` +
-            `ℹ️ Pembayaran akan otomatis terkonfirmasi saat pembeli menekan tombol "Sudah Bayar"`,
+            `*Pesanan Baru Masuk*\n\n` +
+            `• ID Order: \`${orderId}\`\n` +
+            `• Pembeli: ${fullName || '-'} (@${username || '-'})\n` +
+            `• Item: ${product.name} (x${qty})\n` +
+            `• Nominal QRIS: *${formatRupiah(order.uniqueAmount)}*\n\n` +
+            `Status: Menunggu Pembayaran`,
             {
+              parse_mode: 'Markdown',
               reply_markup: {
                 inline_keyboard: [
                   [{ text: '📋 Lihat Detail', callback_data: `admin_order_${orderId}` }],
@@ -114,12 +112,13 @@ function registerCheckoutHandlers(bot) {
         console.error('Direct buy error:', error);
 
         bot.editMessageText(
-          `❌ Gagal memproses pembelian\n\n` +
+          `❌ *Gagal memproses pembelian*\n\n` +
           `Alasan: ${error.message}\n\n` +
-          `Silakan coba lagi.`,
+          `Silakan coba lagi beberapa saat lagi.`,
           {
             chat_id: chatId,
             message_id: messageId,
+            parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
                 [{ text: '🔙 Kembali', callback_data: `prod_${productId}` }],

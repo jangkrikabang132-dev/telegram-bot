@@ -121,9 +121,10 @@ function showAllProducts(bot, chatId, messageId, page = 1) {
   const allProducts = productQueries.getAll.all();
 
   if (allProducts.length === 0) {
-    bot.editMessageText('😕 Belum ada produk.', {
+    bot.editMessageText('😕 *Katalog Kosong:*\nBelum ada produk yang didaftarkan di toko saat ini.', {
       chat_id: chatId,
       message_id: messageId,
+      parse_mode: 'Markdown',
       reply_markup: mainMenuKeyboard(),
     }).catch(() => {});
     return;
@@ -132,15 +133,21 @@ function showAllProducts(bot, chatId, messageId, page = 1) {
   const totalPages = Math.ceil(allProducts.length / ITEMS_PER_PAGE);
   const start = (page - 1) * ITEMS_PER_PAGE;
   const products = allProducts.slice(start, start + ITEMS_PER_PAGE);
-
-  let text = `🛍️ Semua Produk (Halaman ${page}/${totalPages})\n\n`;
+  let text =
+    `*Katalog Produk Tersedia*\n\n` +
+    `Silakan pilih produk untuk melihat rincian detail:\n\n`;
 
   const buttons = [];
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-    text += `${stockIcon} ${p.name}\n`;
-    text += `💰 ${formatRupiah(p.price)} | Stok: ${p.stock}\n`;
-    if (p.description) text += `📝 ${p.description.substring(0, 60)}${p.description.length > 60 ? '...' : ''}\n`;
+    const stockText = p.stock <= 0 ? 'Habis' : `${p.stock} unit`;
+    
+    text += `${stockIcon} *${p.name}*\n` +
+            `   Harga: *${formatRupiah(p.price)}* | Stok: *${stockText}*\n`;
+    if (p.description) {
+      const shortDesc = p.description.length > 60 ? p.description.substring(0, 57) + '...' : p.description;
+      text += `   _${shortDesc}_\n`;
+    }
     text += `\n`;
 
     buttons.push([{
@@ -148,6 +155,8 @@ function showAllProducts(bot, chatId, messageId, page = 1) {
       callback_data: `prod_${p.id}`,
     }]);
   }
+
+  text += `📄 Halaman *${page}* dari *${totalPages}*`;
 
   // Pagination
   const navButtons = [];
@@ -160,9 +169,11 @@ function showAllProducts(bot, chatId, messageId, page = 1) {
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: { inline_keyboard: buttons },
   }).catch(() => {
     bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: buttons },
     }).catch(() => {});
   });
@@ -183,13 +194,17 @@ function showCategoryProducts(bot, chatId, messageId, category) {
     return;
   }
 
-  let text = `📁 Kategori: ${category}\n\n`;
+  let text =
+    `📁 *Kategori: ${category.toUpperCase()}*\n\n` +
+    `Silakan pilih produk di bawah ini:\n\n`;
 
   const buttons = [];
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-    text += `${stockIcon} ${p.name} — ${formatRupiah(p.price)}\n`;
-    text += `   Stok: ${p.stock}\n\n`;
+    const stockText = p.stock <= 0 ? 'Habis' : `${p.stock} unit`;
+    
+    text += `${stockIcon} *${p.name}*\n` +
+            `   Harga: *${formatRupiah(p.price)}* | Stok: *${stockText}*\n\n`;
 
     buttons.push([{
       text: `${stockIcon} ${p.name} — ${formatRupiah(p.price)}`,
@@ -202,9 +217,11 @@ function showCategoryProducts(bot, chatId, messageId, category) {
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: { inline_keyboard: buttons },
   }).catch(() => {
     bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: buttons },
     }).catch(() => {});
   });
@@ -227,11 +244,12 @@ function showProductBuy(bot, chatId, messageId, productId, qty) {
 
   if (product.stock <= 0) {
     const text =
-      `📦 ${product.name}\n\n` +
-      `${product.description ? `📝 ${product.description}\n\n` : ''}` +
-      `💰 Harga: ${formatRupiah(product.price)}\n` +
-      `🔴 Stok Habis\n` +
-      `🏷️ Kategori: ${product.category}`;
+      `*${product.name}* (Stok Habis)\n\n` +
+      `• Kategori: _${product.category}_\n` +
+      `• Harga: *${formatRupiah(product.price)}*\n` +
+      `• Status: Stok Kosong / Habis\n\n` +
+      `${product.description ? `*Deskripsi:*\n_${product.description}_\n\n` : ''}` +
+      `⚠️ Maaf, produk ini sedang kosong. Silakan pilih produk lain di katalog!`;
 
     const keyboard = {
       inline_keyboard: [
@@ -241,11 +259,16 @@ function showProductBuy(bot, chatId, messageId, productId, qty) {
     };
 
     if (messageId) {
-      bot.editMessageText(text, { chat_id: chatId, message_id: messageId, reply_markup: keyboard }).catch(() => {
-        bot.sendMessage(chatId, text, { reply_markup: keyboard }).catch(() => {});
+      bot.editMessageText(text, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'Markdown',
+        reply_markup: keyboard,
+      }).catch(() => {
+        bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: keyboard }).catch(() => {});
       });
     } else {
-      bot.sendMessage(chatId, text, { reply_markup: keyboard }).catch(() => {});
+      bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: keyboard }).catch(() => {});
     }
     return;
   }
@@ -256,22 +279,22 @@ function showProductBuy(bot, chatId, messageId, productId, qty) {
   const subtotal = product.price * qty;
 
   const text =
-    `📦 ${product.name}\n\n` +
-    `${product.description ? `📝 ${product.description}\n\n` : ''}` +
-    `💰 Harga: ${formatRupiah(product.price)}\n` +
-    `📊 Stok: ${product.stock}\n` +
-    `🏷️ Kategori: ${product.category}\n\n` +
-    `━━━━━━━━━━━━━━━━━━\n` +
-    `🛒 Jumlah: ${qty}\n` +
-    `💵 Total: ${formatRupiah(subtotal)}\n` +
-    `━━━━━━━━━━━━━━━━━━`;
+    `*${product.name}*\n\n` +
+    `• Kategori: _${product.category}_\n` +
+    `• Harga Satuan: *${formatRupiah(product.price)}*\n` +
+    `• Stok Tersedia: *${product.stock} unit*\n\n` +
+    `${product.description ? `*Deskripsi:*\n_${product.description}_\n\n` : ''}` +
+    `───\n` +
+    `*Rincian Pembelian:*\n` +
+    `• Jumlah: *${qty}* unit\n` +
+    `• Total Bayar: *${formatRupiah(subtotal)}*`;
 
   const keyboard = {
     inline_keyboard: [
       // Qty selector
       [
         { text: '➖', callback_data: `qty_dec_${productId}_${qty}` },
-        { text: `📦 ${qty}`, callback_data: 'noop' },
+        { text: `📦 ${qty} unit`, callback_data: 'noop' },
         { text: '➕', callback_data: `qty_inc_${productId}_${qty}` },
       ],
       // Bayar langsung
@@ -289,12 +312,13 @@ function showProductBuy(bot, chatId, messageId, productId, qty) {
     bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
+      parse_mode: 'Markdown',
       reply_markup: keyboard,
     }).catch(() => {
-      bot.sendMessage(chatId, text, { reply_markup: keyboard }).catch(() => {});
+      bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: keyboard }).catch(() => {});
     });
   } else {
-    bot.sendMessage(chatId, text, { reply_markup: keyboard }).catch(() => {});
+    bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: keyboard }).catch(() => {});
   }
 }
 

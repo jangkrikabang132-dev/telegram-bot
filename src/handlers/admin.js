@@ -22,22 +22,25 @@ function registerAdminHandlers(bot) {
   // /admin command
   bot.onText(/\/admin/, (msg) => {
     if (!isAdmin(msg.chat.id)) {
-      bot.sendMessage(msg.chat.id, '🔒 Akses ditolak. Hanya admin yang bisa mengakses menu ini.').catch(() => {});
+      bot.sendMessage(msg.chat.id, 'Akses ditolak. Hanya admin yang bisa mengakses menu ini.').catch(() => {});
       return;
     }
     console.log(`👑 /admin dari ${msg.chat.id}`);
+    adminState.delete(String(msg.chat.id)); // Clear state
     showAdminMenu(bot, msg.chat.id);
   });
 
   // /stok command — quick view
   bot.onText(/\/stok/, (msg) => {
     if (!isAdmin(msg.chat.id)) return;
+    adminState.delete(String(msg.chat.id)); // Clear state
     showStockOverview(bot, msg.chat.id);
   });
 
   // /tambahistok [id] [jumlah]
   bot.onText(/\/tambahistok (\d+) (\d+)/, (msg, match) => {
     if (!isAdmin(msg.chat.id)) return;
+    adminState.delete(String(msg.chat.id)); // Clear state
     const productId = parseInt(match[1]);
     const amount = parseInt(match[2]);
     quickAddStock(bot, msg.chat.id, productId, amount);
@@ -46,6 +49,7 @@ function registerAdminHandlers(bot) {
   // /tambahakun [id] (Untuk tambah akun digital massal seperti ChatGPT, Netflix, dll)
   bot.onText(/\/tambahakun (\d+)/, (msg, match) => {
     if (!isAdmin(msg.chat.id)) return;
+    adminState.delete(String(msg.chat.id)); // Clear state
     const productId = parseInt(match[1]);
     
     // Cek produk
@@ -57,11 +61,14 @@ function registerAdminHandlers(bot) {
 
     adminState.set(String(msg.chat.id), { step: 'add_digital_items', productId });
     bot.sendMessage(msg.chat.id,
-      `🔑 *Tambah Akun Digital: ${product.name}* 🔑\n\n` +
-      `Silakan kirim detail akun/voucher (satu per baris). Contoh:\n` +
-      `\`email1:password1\`\n` +
-      `\`email2:password2\`\n\n` +
-      `*Catatan:* Setiap baris akan dihitung sebagai 1 stok tambahan otomatis.\n` +
+      `*Tambah Stok Akun Digital*\n\n` +
+      `Produk: *${product.name}*\n\n` +
+      `Silakan kirim detail akun (satu akun per baris) dengan format:\n` +
+      `\`email:password\` atau \`username:password\`\n\n` +
+      `Contoh:\n` +
+      `\`budi@gmail.com:rahasiabudi123\`\n` +
+      `\`andi@gmail.com:rahasiaandi456\`\n\n` +
+      `💡 _Setiap baris akan diinput sebagai 1 stok terpisah secara otomatis._\n` +
       `Ketik \`/batal\` untuk membatalkan.`,
       { parse_mode: 'Markdown' }
     ).catch(() => {});
@@ -89,15 +96,7 @@ function registerAdminHandlers(bot) {
 
     if (state.step === 'add_image') {
       state.product.image_url = fileId;
-      state.step = 'add_category';
-      adminState.set(String(msg.chat.id), state);
-
-      bot.sendMessage(msg.chat.id,
-        `🖼️ Gambar tersimpan!\n\n` +
-        `🏷️ Masukkan kategori produk:\n` +
-        `(contoh: Makanan, Minuman, Elektronik, dll)\n\n` +
-        `Atau ketik "Umum" untuk kategori default.`
-      ).catch(() => {});
+      saveProductWizard(bot, msg.chat.id, state.product);
     } else if (state.step === 'edit_image') {
       const product = productQueries.getById.get(state.productId);
       if (product) {
@@ -112,7 +111,7 @@ function registerAdminHandlers(bot) {
   });
 
   // Callback queries admin
-  bot.on('callback_query', (query) => {
+  bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const messageId = query.message.message_id;
     const data = query.data;
@@ -133,6 +132,7 @@ function registerAdminHandlers(bot) {
     // ==================== TAMBAH PRODUK ====================
     if (data === 'admin_add_product') {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       startAddProduct(bot, chatId);
       return;
     }
@@ -140,6 +140,7 @@ function registerAdminHandlers(bot) {
     // ==================== KELOLA STOK ====================
     if (data === 'admin_stock') {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       showStockList(bot, chatId, messageId);
       return;
     }
@@ -147,6 +148,7 @@ function registerAdminHandlers(bot) {
     // ==================== TAMBAH STOK CEPAT ====================
     if (data === 'admin_quick_stock') {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       showQuickStockList(bot, chatId, messageId);
       return;
     }
@@ -154,6 +156,7 @@ function registerAdminHandlers(bot) {
     // Quick stock — pilih jumlah untuk produk
     if (data.startsWith('quick_stock_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('quick_stock_', ''));
       showQuickStockAmount(bot, chatId, messageId, productId);
       return;
@@ -171,15 +174,17 @@ function registerAdminHandlers(bot) {
     // Quick stock — set manual
     if (data.startsWith('qstock_set_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('qstock_set_', ''));
       adminState.set(String(chatId), { step: 'quick_set_stock', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan jumlah stok yang ingin DITAMBAHKAN (angka):').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan jumlah stok yang ingin ditambahkan:').catch(() => {});
       return;
     }
 
     // Stok detail per produk
     if (data.startsWith('stock_manage_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('stock_manage_', ''));
       showStockManage(bot, chatId, messageId, productId);
       return;
@@ -188,6 +193,7 @@ function registerAdminHandlers(bot) {
     // Tambah akun digital via menu visual
     if (data.startsWith('stock_add_digital_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('stock_add_digital_', ''));
       
       const product = productQueries.getById.get(productId);
@@ -198,11 +204,14 @@ function registerAdminHandlers(bot) {
 
       adminState.set(String(chatId), { step: 'add_digital_items', productId });
       bot.sendMessage(chatId,
-        `🔑 *Tambah Akun Digital: ${product.name}* 🔑\n\n` +
-        `Silakan kirim detail akun/voucher (satu per baris). Contoh:\n` +
-        `\`email1:password1\`\n` +
-        `\`email2:password2\`\n\n` +
-        `*Catatan:* Setiap baris akan dihitung sebagai 1 stok tambahan otomatis.\n` +
+        `*Tambah Stok Akun Digital*\n\n` +
+        `Produk: *${product.name}*\n\n` +
+        `Silakan kirim detail akun (satu akun per baris) dengan format:\n` +
+        `\`email:password\` atau \`username:password\`\n\n` +
+        `Contoh:\n` +
+        `\`budi@gmail.com:rahasiabudi123\`\n` +
+        `\`andi@gmail.com:rahasiaandi456\`\n\n` +
+        `💡 _Setiap baris akan diinput sebagai 1 stok terpisah secara otomatis._\n` +
         `Ketik \`/batal\` untuk membatalkan.`,
         { parse_mode: 'Markdown' }
       ).catch(() => {});
@@ -212,6 +221,7 @@ function registerAdminHandlers(bot) {
     // Tambah link produk via menu visual
     if (data.startsWith('stock_add_link_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('stock_add_link_', ''));
       
       const product = productQueries.getById.get(productId);
@@ -222,8 +232,10 @@ function registerAdminHandlers(bot) {
 
       adminState.set(String(chatId), { step: 'add_digital_link_url', productId });
       bot.sendMessage(chatId,
-        `🔗 *Tambah Link Produk: ${product.name}* 🔗\n\n` +
-        `Silakan kirimkan link/URL produk Anda (contoh: \`https://google-drive.com/share\`):\n\n` +
+        `*Tambah Tautan Produk Digital*\n\n` +
+        `Produk: *${product.name}*\n\n` +
+        `Silakan kirimkan link/tautan download atau akses produk Anda:\n` +
+        `💡 _Contoh: https://google-drive.com/share/folder-id_\n\n` +
         `Ketik \`/batal\` untuk membatalkan.`,
         { parse_mode: 'Markdown' }
       ).catch(() => {});
@@ -251,21 +263,24 @@ function registerAdminHandlers(bot) {
     // Set stok manual
     if (data.startsWith('stock_set_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('stock_set_', ''));
       adminState.set(String(chatId), { step: 'set_stock', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan jumlah stok baru (angka):').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan jumlah stok baru:').catch(() => {});
       return;
     }
 
     // ==================== EDIT PRODUK ====================
     if (data === 'admin_edit_list') {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       showEditList(bot, chatId, messageId);
       return;
     }
 
     if (data.startsWith('admin_edit_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('admin_edit_', ''));
       showEditProduct(bot, chatId, messageId, productId);
       return;
@@ -274,41 +289,46 @@ function registerAdminHandlers(bot) {
     // Edit field spesifik
     if (data.startsWith('edit_name_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('edit_name_', ''));
       adminState.set(String(chatId), { step: 'edit_name', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan nama baru:').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan nama baru:').catch(() => {});
       return;
     }
 
     if (data.startsWith('edit_desc_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('edit_desc_', ''));
       adminState.set(String(chatId), { step: 'edit_desc', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan deskripsi baru:').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan deskripsi baru:').catch(() => {});
       return;
     }
 
     if (data.startsWith('edit_price_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('edit_price_', ''));
       adminState.set(String(chatId), { step: 'edit_price', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan harga baru (angka, dalam Rupiah):').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan harga baru (angka, dalam Rupiah):').catch(() => {});
       return;
     }
 
     if (data.startsWith('edit_stock_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('edit_stock_', ''));
       adminState.set(String(chatId), { step: 'edit_stock', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan jumlah stok baru (angka):').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan jumlah stok baru:').catch(() => {});
       return;
     }
 
     if (data.startsWith('edit_cat_')) {
       bot.answerCallbackQuery(query.id);
+      adminState.delete(String(chatId)); // Clear existing state
       const productId = parseInt(data.replace('edit_cat_', ''));
       adminState.set(String(chatId), { step: 'edit_category', productId });
-      bot.sendMessage(chatId, '✏️ Masukkan kategori baru:').catch(() => {});
+      bot.sendMessage(chatId, 'Masukkan kategori baru:').catch(() => {});
       return;
     }
 
@@ -389,20 +409,14 @@ function registerAdminHandlers(bot) {
         return;
       }
 
-      orderQueries.updateStatus.run('paid', orderId);
-      bot.answerCallbackQuery(query.id, { text: '✅ Pembayaran dikonfirmasi!' });
+      const { processOrderDelivery } = require('../delivery-service');
 
-      // Notifikasi ke pembeli
-      const items = orderQueries.getItems.all(orderId);
-      const itemList = items.map(i => `  • ${i.product_name} x${i.quantity} — ${formatRupiah(i.price * i.quantity)}`).join('\n');
-
-      bot.sendMessage(order.chat_id,
-        `🎉 Pembayaran Dikonfirmasi!\n\n` +
-        `📋 Order: ${orderId}\n` +
-        `💰 Total: ${formatRupiah(order.total_amount)}\n\n` +
-        `📦 Item:\n${itemList}\n\n` +
-        `Terima kasih sudah berbelanja! 🙏`
-      ).catch(console.error);
+      bot.answerCallbackQuery(query.id, { text: '⏳ Memproses pengiriman...' });
+      
+      // Panggil delivery service terpadu
+      await processOrderDelivery(bot, orderId, order.unique_amount || order.total_amount, {
+        useAnimation: false
+      });
 
       showAdminOrderDetail(bot, chatId, messageId, orderId);
       return;
@@ -426,20 +440,25 @@ function showAdminMenu(bot, chatId, messageId) {
   const pendingOrders = orderQueries.getAllPending.all();
   const todaySales = orderQueries.getTodaySales.get();
 
-  let text = '👑 Panel Admin\n\n';
-  text += `📦 Total Produk: ${products.length}\n`;
-  text += `⚠️ Stok Menipis: ${lowStock.length}\n`;
-  text += `⏳ Pesanan Pending: ${pendingOrders.length}\n`;
-  text += `💰 Penjualan Hari Ini: ${todaySales.total_orders} pesanan (${formatRupiah(todaySales.total_revenue)})\n`;
+  let text =
+    `*Panel Admin Toko Digital*\n\n` +
+    `Ringkasan performa hari ini:\n` +
+    `• Total Produk: ${products.length} item\n` +
+    `• Stok Menipis: ${lowStock.length} produk\n` +
+    `• Pesanan Pending: ${pendingOrders.length} order\n` +
+    `• Penjualan: ${todaySales.total_orders} transaksi (${formatRupiah(todaySales.total_revenue)})\n\n` +
+    `───\n` +
+    `Pilih menu pengelolaan di bawah ini:`;
 
   if (messageId) {
     bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
+      parse_mode: 'Markdown',
       reply_markup: adminMenuKeyboard(),
-    }).catch(() => bot.sendMessage(chatId, text, { reply_markup: adminMenuKeyboard() }).catch(() => {}));
+    }).catch(() => bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: adminMenuKeyboard() }).catch(() => {}));
   } else {
-    bot.sendMessage(chatId, text, { reply_markup: adminMenuKeyboard() }).catch(() => {});
+    bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: adminMenuKeyboard() }).catch(() => {});
   }
 }
 
@@ -455,15 +474,40 @@ function startAddProduct(bot, chatId) {
       price: 0,
       stock: 0,
       image_url: '',
-      category: 'Umum',
+      category: 'Digital',
     },
   });
 
   bot.sendMessage(chatId,
-    '➕ Tambah Produk Baru\n\n' +
-    'Langkah 1/6: Masukkan nama produk:\n\n' +
-    'Ketik /batal untuk membatalkan'
+    `*Tambah Produk Baru (1/5)*\n\n` +
+    `Masukkan nama produk:\n` +
+    `_(Contoh: ChatGPT Premium 1 Bulan)_\n\n` +
+    `Ketik \`/batal\` untuk membatalkan.`,
+    { parse_mode: 'Markdown' }
   ).catch(() => {});
+}
+
+function saveProductWizard(bot, chatId, productData) {
+  try {
+    const result = productQueries.insert.run(productData);
+    bot.sendMessage(chatId,
+      `✅ *Produk Berhasil Ditambahkan!*\n\n` +
+      `• ID Produk: \`${result.lastInsertRowid}\`\n` +
+      `• Nama: *${productData.name}*\n` +
+      `• Deskripsi: _${productData.description || '-'}_\n` +
+      `• Harga: *${formatRupiah(productData.price)}*\n` +
+      `• Kategori: *${productData.category}*\n` +
+      `• Gambar: ${productData.image_url ? 'Ya' : 'Tidak'}\n\n` +
+      `💡 _Tips: Silakan kelola stok produk untuk mengisi credentials akun digital atau link download._`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: adminMenuKeyboard(),
+      }
+    ).catch(() => {});
+  } catch (error) {
+    bot.sendMessage(chatId, `❌ Gagal menyimpan produk: ${error.message}`).catch(() => {});
+  }
+  adminState.delete(String(chatId));
 }
 
 function handleAdminInput(bot, msg, state) {
@@ -473,20 +517,22 @@ function handleAdminInput(bot, msg, state) {
   // Batal
   if (text === '/batal') {
     adminState.delete(String(chatId));
-    bot.sendMessage(chatId, '❌ Dibatalkan.', { reply_markup: adminMenuKeyboard() }).catch(() => {});
+    bot.sendMessage(chatId, 'Pembuatan produk dibatalkan.', { reply_markup: adminMenuKeyboard() }).catch(() => {});
     return;
   }
 
   switch (state.step) {
-    // ==================== ADD PRODUCT WIZARD ====================
+    // ==================== ADD PRODUCT WIZARD (5 STEPS) ====================
     case 'add_name':
       state.product.name = text;
       state.step = 'add_description';
       adminState.set(String(chatId), state);
       bot.sendMessage(chatId,
-        `✅ Nama: ${text}\n\n` +
-        `Langkah 2/6: Masukkan deskripsi produk:\n` +
-        `(atau ketik "-" untuk skip)`
+        `*Tambah Produk Baru (2/5)*\n\n` +
+        `Nama Produk: *${text}*\n\n` +
+        `Masukkan deskripsi produk:\n` +
+        `_(Ketik \`-\` jika ingin mengosongkan deskripsi)_`,
+        { parse_mode: 'Markdown' }
       ).catch(() => {});
       break;
 
@@ -495,82 +541,53 @@ function handleAdminInput(bot, msg, state) {
       state.step = 'add_price';
       adminState.set(String(chatId), state);
       bot.sendMessage(chatId,
-        `Langkah 3/6: Masukkan harga (angka dalam Rupiah):\n` +
-        `Contoh: 50000`
+        `*Tambah Produk Baru (3/5)*\n\n` +
+        `Deskripsi: _${state.product.description || '-'}_\n\n` +
+        `Masukkan harga produk (angka saja, tanpa titik/koma):\n` +
+        `_(Contoh: \`50000\` untuk Rp 50.000)_`,
+        { parse_mode: 'Markdown' }
       ).catch(() => {});
       break;
 
     case 'add_price': {
       const price = parseInt(text.replace(/[^0-9]/g, ''));
       if (isNaN(price) || price <= 0) {
-        bot.sendMessage(chatId, '❌ Harga harus angka positif. Coba lagi:').catch(() => {});
+        bot.sendMessage(chatId, '❌ Harga harus berupa angka positif. Coba lagi:').catch(() => {});
         return;
       }
       state.product.price = price;
-      state.step = 'add_stock';
-      adminState.set(String(chatId), state);
-      bot.sendMessage(chatId,
-        `✅ Harga: ${formatRupiah(price)}\n\n` +
-        `Langkah 4/6: Masukkan jumlah stok awal:`
-      ).catch(() => {});
-      break;
-    }
-
-    case 'add_stock': {
-      const stock = parseInt(text);
-      if (isNaN(stock) || stock < 0) {
-        bot.sendMessage(chatId, '❌ Stok harus angka >= 0. Coba lagi:').catch(() => {});
-        return;
-      }
-      state.product.stock = stock;
-      state.step = 'add_image';
-      adminState.set(String(chatId), state);
-      bot.sendMessage(chatId,
-        `✅ Stok: ${stock}\n\n` +
-        `Langkah 5/6: Kirim foto produk:\n` +
-        `(atau ketik "-" untuk skip)`
-      ).catch(() => {});
-      break;
-    }
-
-    case 'add_image':
-      state.product.image_url = '';
       state.step = 'add_category';
       adminState.set(String(chatId), state);
       bot.sendMessage(chatId,
-        `Langkah 6/6: Masukkan kategori produk:\n` +
-        `(contoh: Makanan, Minuman, Elektronik)\n` +
-        `Atau ketik "-" untuk "Umum"`
+        `*Tambah Produk Baru (4/5)*\n\n` +
+        `Harga: *${formatRupiah(price)}*\n\n` +
+        `Masukkan kategori produk:\n` +
+        `_(Ketik \`-\` untuk menggunakan kategori default: Digital)_`,
+        { parse_mode: 'Markdown' }
+      ).catch(() => {});
+      break;
+    }
+
+    case 'add_category':
+      state.product.category = text === '-' ? 'Digital' : text;
+      state.step = 'add_image';
+      adminState.set(String(chatId), state);
+      bot.sendMessage(chatId,
+        `*Tambah Produk Baru (5/5)*\n\n` +
+        `Kategori: *${state.product.category}*\n\n` +
+        `Kirimkan foto/gambar untuk produk ini:\n` +
+        `_(Ketik \`-\` jika produk tidak menggunakan gambar)_`,
+        { parse_mode: 'Markdown' }
       ).catch(() => {});
       break;
 
-    case 'add_category': {
-      state.product.category = (text === '-') ? 'Umum' : text;
-
-      // Simpan produk
-      try {
-        const result = productQueries.insert.run(state.product);
-        const p = state.product;
-
-        bot.sendMessage(chatId,
-          `✅ Produk Berhasil Ditambahkan!\n\n` +
-          `📦 Nama: ${p.name}\n` +
-          `📝 Deskripsi: ${p.description || '-'}\n` +
-          `💰 Harga: ${formatRupiah(p.price)}\n` +
-          `📊 Stok: ${p.stock}\n` +
-          `🏷️ Kategori: ${p.category}\n` +
-          `🆔 ID: ${result.lastInsertRowid}`,
-          {
-            reply_markup: adminMenuKeyboard(),
-          }
-        ).catch(() => {});
-      } catch (error) {
-        bot.sendMessage(chatId, `❌ Gagal menyimpan: ${error.message}`).catch(() => {});
+    case 'add_image':
+      if (text !== '-') {
+        bot.sendMessage(chatId, '⚠️ Kirimkan foto atau ketik `-` untuk melewatkan:').catch(() => {});
+        return;
       }
-
-      adminState.delete(String(chatId));
+      saveProductWizard(bot, chatId, state.product);
       break;
-    }
 
     // ==================== EDIT PRODUCT FIELDS ====================
     case 'edit_name': {
@@ -711,16 +728,16 @@ function handleAdminInput(bot, msg, state) {
         const newStock = product.stock + accounts.length;
 
         bot.sendMessage(chatId,
-          `✅ *Berhasil Menambahkan Akun Digital!* ✅\n\n` +
-          `📦 Produk: *${product.name}*\n` +
-          `➕ Jumlah Ditambahkan: *+${accounts.length} akun*\n` +
-          `📊 Total Stok Sekarang: *${newStock}*\n\n` +
-          `🔑 Detail akun berhasil di-input secara rapi di database.`,
+          `✅ *Stok Akun Berhasil Ditambahkan!*\n\n` +
+          `• Produk: *${product.name}*\n` +
+          `• Jumlah Akun Baru: \`+${accounts.length} unit\`\n` +
+          `• Total Stok Sekarang: *${newStock} unit*\n\n` +
+          `🔑 Akun digital telah dimasukkan ke database dan siap dikirim otomatis ke pembeli!`,
           {
             parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
-                [{ text: '🔙 Kelola Stok', callback_data: 'admin_stock' }],
+                [{ text: '📦 Kelola Stok', callback_data: `stock_manage_${product.id}` }],
                 [{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }],
               ],
             },
@@ -755,7 +772,7 @@ function handleAdminInput(bot, msg, state) {
 
       bot.sendMessage(chatId,
         `🔗 *Link Produk:* \`${url}\`\n\n` +
-        `Langkah 2/2: 📊 *Berapa kapasitas/stok untuk link ini?*\n` +
+        `Langkah 2/2: *Berapa kapasitas/stok untuk link ini?*\n` +
         `Ketikkan angka jumlah pembelian yang diizinkan (contoh: \`100\`):`
       ).catch(() => {});
       break;
@@ -786,17 +803,17 @@ function handleAdminInput(bot, msg, state) {
         const newStock = product.stock + amount;
 
         bot.sendMessage(chatId,
-          `✅ *Berhasil Menambahkan Tautan & Mengisi Stok!* ✅\n\n` +
-          `📦 Produk: *${product.name}*\n` +
-          `🔗 Tautan: \`${state.linkUrl}\`\n` +
-          `➕ Kapasitas/Stok Ditambah: *+${amount} pembelian*\n` +
-          `📊 Total Stok Sekarang: *${newStock}*\n\n` +
-          `Pembeli selanjutnya akan otomatis mendapatkan link ini saat sukses membayar.`,
+          `✅ *Tautan Berhasil Disimpan!*\n\n` +
+          `• Produk: *${product.name}*\n` +
+          `• Tautan: \`${state.linkUrl}\`\n` +
+          `• Kapasitas Stok Ditambah: \`+${amount} unit\`\n` +
+          `• Total Stok Sekarang: *${newStock} unit*\n\n` +
+          `Pembeli selanjutnya akan otomatis menerima tautan ini saat sukses melakukan pembayaran!`,
           {
             parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
-                [{ text: '🔙 Kelola Stok', callback_data: 'admin_stock' }],
+                [{ text: '📦 Kelola Stok', callback_data: `stock_manage_${product.id}` }],
                 [{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }],
               ],
             },
@@ -820,7 +837,7 @@ function showStockList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    const text = '📦 Belum ada produk. Tambahkan produk dulu!';
+    const text = 'Belum ada produk. Tambahkan produk dulu!';
     bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
@@ -829,15 +846,19 @@ function showStockList(bot, chatId, messageId) {
     return;
   }
 
-  let text = '📦 Kelola Stok\n\nPilih produk untuk atur stok:\n\n';
+  let text =
+    `*Pengelolaan Stok Produk*\n\n` +
+    `Pilih produk di bawah ini untuk mengelola stok digital:\n\n`;
 
   const buttons = [];
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-    text += `${stockIcon} ${p.name} — Stok: ${p.stock} — ${formatRupiah(p.price)}\n`;
+    const statusText = p.is_active ? ' (Nonaktif)' : '';
+    text += `${stockIcon} *${p.name}*${statusText}\n` +
+            `   Stok saat ini: *${p.stock}* | Harga: *${formatRupiah(p.price)}*\n\n`;
 
     buttons.push([{
-      text: `${stockIcon} ${p.name} (Stok: ${p.stock})`,
+      text: `${stockIcon} ${p.name} (${p.stock} unit)`,
       callback_data: `stock_manage_${p.id}`,
     }]);
   }
@@ -847,9 +868,10 @@ function showStockList(bot, chatId, messageId) {
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: { inline_keyboard: buttons },
   }).catch(() => {
-    bot.sendMessage(chatId, text, { reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+    bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
   });
 }
 
@@ -858,19 +880,26 @@ function showStockManage(bot, chatId, messageId, productId) {
   if (!product) return;
 
   const stockIcon = product.stock <= 0 ? '🔴' : product.stock <= 5 ? '🟡' : '🟢';
+  const stockText = product.stock <= 0 ? 'Habis (Silakan Restock)' : `${product.stock} unit`;
 
   const text =
-    `📦 Kelola Stok: ${product.name}\n\n` +
-    `${stockIcon} Stok saat ini: ${product.stock}\n` +
-    `💰 Harga: ${formatRupiah(product.price)}\n\n` +
-    `Gunakan tombol untuk mengatur stok:`;
+    `*Kelola Stok: ${product.name.toUpperCase()}*\n\n` +
+    `• Harga Produk: *${formatRupiah(product.price)}*\n` +
+    `• Kategori: \`${product.category}\`\n` +
+    `• Stok Saat Ini: ${stockIcon} *${stockText}*\n\n` +
+    `───\n` +
+    `*Instruksi:*\n` +
+    `- Gunakan tombol *+1 / -1* untuk edit manual.\n` +
+    `- Klik *Input Akun* untuk tambah list credentials massal.\n` +
+    `- Klik *Input Link* untuk set tautan download.`;
 
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: stockManageKeyboard(productId),
   }).catch(() => {
-    bot.sendMessage(chatId, text, { reply_markup: stockManageKeyboard(productId) }).catch(() => {});
+    bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: stockManageKeyboard(productId) }).catch(() => {});
   });
 }
 
@@ -899,18 +928,21 @@ function showStockOverview(bot, chatId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    bot.sendMessage(chatId, '📦 Belum ada produk.').catch(() => {});
+    bot.sendMessage(chatId, 'Belum ada produk.').catch(() => {});
     return;
   }
 
-  let text = '📊 Ringkasan Stok\n\n';
+  let text =
+    `*Ringkasan Status Stok*\n\n`;
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
-    const active = p.is_active ? '' : ' (nonaktif)';
-    text += `${stockIcon} ${p.name}${active}\n   Stok: ${p.stock} | ${formatRupiah(p.price)}\n\n`;
+    const activeText = p.is_active ? '' : ' _(Nonaktif)_';
+    text += `${stockIcon} *${p.name}*${activeText}\n` +
+            `   ↳ Stok: *${p.stock} unit* | *${formatRupiah(p.price)}*\n\n`;
   }
 
   bot.sendMessage(chatId, text, {
+    parse_mode: 'Markdown',
     reply_markup: adminMenuKeyboard(),
   }).catch(() => {});
 }
@@ -936,7 +968,7 @@ function showQuickStockList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    const text = '📦 Belum ada produk. Tambahkan produk dulu!';
+    const text = 'Belum ada produk. Tambahkan produk dulu!';
     bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
@@ -945,7 +977,7 @@ function showQuickStockList(bot, chatId, messageId) {
     return;
   }
 
-  let text = '📥 Tambah Stok Cepat\n\nPilih produk untuk tambah stok:\n\n';
+  let text = '*Tambah Stok Cepat*\n\nPilih produk untuk tambah stok:\n\n';
 
   for (const p of products) {
     const stockIcon = p.stock <= 0 ? '🔴' : p.stock <= 5 ? '🟡' : '🟢';
@@ -968,9 +1000,9 @@ function showQuickStockAmount(bot, chatId, messageId, productId) {
   const stockIcon = product.stock <= 0 ? '🔴' : product.stock <= 5 ? '🟡' : '🟢';
 
   const text =
-    `📥 Tambah Stok: ${product.name}\n\n` +
-    `${stockIcon} Stok saat ini: ${product.stock}\n` +
-    `💰 Harga: ${formatRupiah(product.price)}\n\n` +
+    `*Tambah Stok: ${product.name}*\n\n` +
+    `• Stok saat ini: ${stockIcon} ${product.stock}\n` +
+    `• Harga: ${formatRupiah(product.price)}\n\n` +
     `Pilih jumlah yang ingin ditambahkan:`;
 
   bot.editMessageText(text, {
@@ -1025,7 +1057,7 @@ function showEditList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    bot.editMessageText('📦 Belum ada produk.', {
+    bot.editMessageText('Belum ada produk.', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1033,7 +1065,7 @@ function showEditList(bot, chatId, messageId) {
     return;
   }
 
-  bot.editMessageText('✏️ Edit Produk\n\nPilih produk yang ingin diedit:', {
+  bot.editMessageText('Edit Produk\n\nPilih produk yang ingin diedit:', {
     chat_id: chatId,
     message_id: messageId,
     reply_markup: productListKeyboard(products, 'admin_edit'),
@@ -1044,19 +1076,20 @@ function showEditProduct(bot, chatId, messageId, productId) {
   const product = productQueries.getById.get(productId);
   if (!product) return;
 
-  const statusText = product.is_active ? '🟢 Aktif' : '🔴 Nonaktif';
+  const statusText = product.is_active ? 'Aktif' : 'Nonaktif';
 
   const text =
-    `✏️ Edit Produk\n\n` +
-    `📦 Nama: ${product.name}\n` +
-    `📝 Deskripsi: ${product.description || '-'}\n` +
-    `💰 Harga: ${formatRupiah(product.price)}\n` +
-    `📊 Stok: ${product.stock}\n` +
-    `🏷️ Kategori: ${product.category}\n` +
-    `📌 Status: ${statusText}\n\n` +
-    `Pilih field yang ingin diedit:`;
+    `*Edit Produk*\n\n` +
+    `• Nama: ${product.name}\n` +
+    `• Deskripsi: ${product.description || '-'}\n` +
+    `• Harga: ${formatRupiah(product.price)}\n` +
+    `• Stok: ${product.stock}\n` +
+    `• Kategori: ${product.category}\n` +
+    `• Status: ${statusText}\n\n` +
+    `───\n` +
+    `Pilih bagian yang ingin diubah:`;
 
-  const toggleText = product.is_active ? '🔴 Nonaktifkan' : '🟢 Aktifkan';
+  const toggleText = product.is_active ? 'Nonaktifkan' : 'Aktifkan';
 
   bot.editMessageText(text, {
     chat_id: chatId,
@@ -1064,16 +1097,16 @@ function showEditProduct(bot, chatId, messageId, productId) {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: '📝 Nama', callback_data: `edit_name_${productId}` },
-          { text: '📄 Deskripsi', callback_data: `edit_desc_${productId}` },
+          { text: 'Nama', callback_data: `edit_name_${productId}` },
+          { text: 'Deskripsi', callback_data: `edit_desc_${productId}` },
         ],
         [
-          { text: '💰 Harga', callback_data: `edit_price_${productId}` },
-          { text: '📦 Stok', callback_data: `edit_stock_${productId}` },
+          { text: 'Harga', callback_data: `edit_price_${productId}` },
+          { text: 'Stok', callback_data: `edit_stock_${productId}` },
         ],
         [
-          { text: '🏷️ Kategori', callback_data: `edit_cat_${productId}` },
-          { text: '🖼️ Gambar', callback_data: `edit_img_${productId}` },
+          { text: 'Kategori', callback_data: `edit_cat_${productId}` },
+          { text: 'Gambar', callback_data: `edit_img_${productId}` },
         ],
         [
           { text: toggleText, callback_data: `edit_toggle_${productId}` },
@@ -1093,7 +1126,7 @@ function showDeleteList(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
 
   if (products.length === 0) {
-    bot.editMessageText('📦 Belum ada produk.', {
+    bot.editMessageText('Belum ada produk.', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1101,7 +1134,7 @@ function showDeleteList(bot, chatId, messageId) {
     return;
   }
 
-  bot.editMessageText('🗑️ Hapus Produk\n\nPilih produk yang ingin dihapus:', {
+  bot.editMessageText('Hapus Produk\n\nPilih produk yang ingin dihapus:', {
     chat_id: chatId,
     message_id: messageId,
     reply_markup: productListKeyboard(products, 'admin_delete'),
@@ -1113,9 +1146,9 @@ function confirmDeleteProduct(bot, chatId, messageId, productId) {
   if (!product) return;
 
   bot.editMessageText(
-    `⚠️ Yakin ingin menghapus produk ${product.name}?\n\n` +
-    `💰 Harga: ${formatRupiah(product.price)}\n` +
-    `📊 Stok: ${product.stock}\n\n` +
+    `Yakin ingin menghapus produk ${product.name}?\n\n` +
+    `• Harga: ${formatRupiah(product.price)}\n` +
+    `• Stok: ${product.stock}\n\n` +
     `⚠️ Tindakan ini tidak bisa dibatalkan!`,
     {
       chat_id: chatId,
@@ -1123,8 +1156,8 @@ function confirmDeleteProduct(bot, chatId, messageId, productId) {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '✅ Ya, Hapus', callback_data: `admin_del_yes_${productId}` },
-            { text: '❌ Batal', callback_data: 'admin_delete_list' },
+            { text: 'Ya, Hapus', callback_data: `admin_del_yes_${productId}` },
+            { text: 'Batal', callback_data: 'admin_delete_list' },
           ],
         ],
       },
@@ -1140,7 +1173,7 @@ function deleteProduct(bot, query, chatId, messageId, productId) {
   }
 
   productQueries.delete.run(productId);
-  bot.answerCallbackQuery(query.id, { text: `🗑️ ${product.name} dihapus` });
+  bot.answerCallbackQuery(query.id, { text: `${product.name} dihapus` });
   showDeleteList(bot, chatId, messageId);
 }
 
@@ -1153,29 +1186,33 @@ function showDailyReport(bot, chatId, messageId) {
   const products = productQueries.getAllIncludeInactive.all();
   const lowStock = productQueries.getLowStock.all();
 
-  let text = `📊 Laporan Hari Ini\n\n`;
-  text += `💰 Pendapatan: ${formatRupiah(sales.total_revenue)}\n`;
-  text += `📦 Pesanan Selesai: ${sales.total_orders}\n`;
-  text += `⏳ Pesanan Pending: ${pending.length}\n\n`;
-  text += `📊 Produk\n`;
-  text += `Total: ${products.length}\n`;
-  text += `Stok Menipis: ${lowStock.length}\n`;
+  let text =
+    `*Laporan Statistik Harian Toko*\n\n` +
+    `• Total Pendapatan: *${formatRupiah(sales.total_revenue)}*\n` +
+    `• Pesanan Sukses (Lunas): *${sales.total_orders} transaksi*\n` +
+    `• Pesanan Pending: *${pending.length} order*\n\n` +
+    `*Status Gudang Produk:*\n` +
+    `• Total Jenis Produk: ${products.length} varian\n` +
+    `• Produk Stok Menipis: ${lowStock.length} item\n`;
 
   if (lowStock.length > 0) {
-    text += `\n⚠️ Stok Menipis:\n`;
+    text += `\n⚠️ *Daftar Produk Butuh Restock:*\n`;
     for (const p of lowStock) {
-      text += `  🟡 ${p.name}: ${p.stock} tersisa\n`;
+      const icon = p.stock <= 0 ? '🔴' : '🟡';
+      text += `  ${icon} ${p.name} (Sisa: *${p.stock}*)\n`;
     }
   }
 
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [[{ text: '🔙 Menu Admin', callback_data: 'admin_menu' }]],
     },
   }).catch(() => {
     bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
       reply_markup: adminMenuKeyboard(),
     }).catch(() => {});
   });
@@ -1188,7 +1225,7 @@ function showAdminOrders(bot, chatId, messageId) {
   const orders = orderQueries.getAll.all();
 
   if (orders.length === 0) {
-    bot.editMessageText('📋 Belum ada pesanan.', {
+    bot.editMessageText('Belum ada pesanan.', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
@@ -1196,18 +1233,20 @@ function showAdminOrders(bot, chatId, messageId) {
     return;
   }
 
-  let text = '📋 Semua Pesanan\n\n';
+  let text =
+    `*Daftar Pesanan Masuk*\n` +
+    `Menampilkan 20 transaksi terbaru toko:\n\n`;
 
   const buttons = [];
   for (const order of orders.slice(0, 20)) {
     const emoji = statusEmoji(order.status);
     const label = statusLabel(order.status);
-    text += `${emoji} ${order.order_id}\n`;
-    text += `   👤 ${order.full_name || order.username || order.chat_id}\n`;
-    text += `   💰 ${formatRupiah(order.total_amount)} — ${label}\n\n`;
+    text += `${emoji} *ID Order:* \`${order.order_id}\`\n` +
+            `   Pembeli: ${order.full_name || '-'} (@${order.username || '-'})\n` +
+            `   Total: *${formatRupiah(order.total_amount)}* — _${label}_\n\n`;
 
     buttons.push([{
-      text: `${emoji} ${order.order_id} — ${formatRupiah(order.total_amount)}`,
+      text: `${emoji} Detail: ${order.order_id}`,
       callback_data: `admin_order_${order.order_id}`,
     }]);
   }
@@ -1217,9 +1256,10 @@ function showAdminOrders(bot, chatId, messageId) {
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: { inline_keyboard: buttons },
   }).catch(() => {
-    bot.sendMessage(chatId, text, { reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+    bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
   });
 }
 
@@ -1231,22 +1271,23 @@ function showAdminOrderDetail(bot, chatId, messageId, orderId) {
   const emoji = statusEmoji(order.status);
   const label = statusLabel(order.status);
 
-  let text = `📋 Detail Pesanan (Admin)\n\n`;
-  text += `🆔 Order: ${orderId}\n`;
-  text += `${emoji} Status: ${label}\n`;
-  text += `👤 Pembeli: ${order.full_name || '-'} (@${order.username || '-'})\n`;
-  text += `💬 Chat ID: ${order.chat_id}\n`;
-  text += `📅 Tanggal: ${formatDate(order.created_at)}\n\n`;
+  let text =
+    `*Detail Transaksi (Admin)*\n\n` +
+    `• ID Order: \`${orderId}\`\n` +
+    `• Status: ${emoji} *${label}*\n` +
+    `• Tanggal: _${formatDate(order.created_at)}_\n` +
+    `• Pembeli: ${order.full_name || '-'} (@${order.username || '-'})\n` +
+    `• Chat ID: \`${order.chat_id}\`\n\n` +
+    `*Rincian Item Belanja:*\n`;
 
-  text += `📦 Item:\n`;
   for (const item of items) {
-    text += `  • ${item.product_name} x${item.quantity} — ${formatRupiah(item.price * item.quantity)}\n`;
+    text += `  • ${item.product_name} (x${item.quantity}) — _${formatRupiah(item.price * item.quantity)}_\n`;
   }
-  text += `\n💰 Total: ${formatRupiah(order.total_amount)}`;
+  text += `\nTotal Pembayaran: *${formatRupiah(order.total_amount)}*`;
 
   const buttons = [];
   if (order.status === 'pending') {
-    buttons.push([{ text: '💰 Konfirmasi Pembayaran QRIS', callback_data: `confirm_paid_${orderId}` }]);
+    buttons.push([{ text: '💰 Konfirmasi Pembayaran QRIS (Manual)', callback_data: `confirm_paid_${orderId}` }]);
   }
   if (order.status === 'paid') {
     buttons.push([{ text: '✅ Konfirmasi Pesanan', callback_data: `confirm_order_${orderId}` }]);
@@ -1256,6 +1297,7 @@ function showAdminOrderDetail(bot, chatId, messageId, orderId) {
   bot.editMessageText(text, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'Markdown',
     reply_markup: { inline_keyboard: buttons },
   }).catch(() => {});
 }
@@ -1267,7 +1309,7 @@ function showLowStock(bot, chatId, messageId) {
   const products = productQueries.getLowStock.all();
 
   if (products.length === 0) {
-    bot.editMessageText('✅ Semua produk stoknya aman!', {
+    bot.editMessageText('Semua produk stoknya aman!', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: adminMenuKeyboard(),
