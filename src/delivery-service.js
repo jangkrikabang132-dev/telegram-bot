@@ -149,7 +149,7 @@ async function processOrderDelivery(bot, orderId, paidAmount = null, options = {
         `${itemList}\n` +
         digitalItemsText +
         (instructionsText ? `\n` + instructionsText : '') +
-        `\nTerima kasih telah berbelanja di toko kami! Jika ada kendala, hubungi admin.`;
+        `\nTerima kasih telah berbelanja di toko kami! Jika ada kendala, hubungi admin di Telegram: @Naufal_090`;
 
       await bot.sendMessage(parseInt(order.chat_id), buyerText, {
         parse_mode: 'Markdown',
